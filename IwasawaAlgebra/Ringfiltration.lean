@@ -9,7 +9,3 @@ structure RingFiltration {R : Type u} {α : Type v} [Ring R] [CanonicallyOrdered
   bot : F (0 : α) = R
   intersection_eq  : ∀ i : α, F i = ⨅ j < i, F j
   inclusion_le : ∀ i j : α,  ((F i) * (F j)) ≤ F (i + j)
-
-
-
-theorem RingFiltration_iso

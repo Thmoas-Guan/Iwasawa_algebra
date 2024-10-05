@@ -1,22 +1,33 @@
 import Mathlib
 import Mathlib.RingTheory.TwoSidedIdeal.Basic
-import Mathlib.RingTheory.Ideal.Pointwise
+
 
 variable {M R : Type*}
 
+namespace test
+
 open TwoSidedIdeal
 
-variable [Monoid M] [Ring R] [MulAction M R] {I : TwoSidedIdeal R}
+variable [Ring R] [AddCommMonoid M] [Module R M] [AddCommMonoid M'] [Module R M'] {I  J : TwoSidedIdeal R}
 
-/- protected def pointwiseMulSemiringAction'  {I : TwoSidedIdeal R} : MulSemiringAction M (asIdeal I) where
-  smul a := Ideal.map (MulSemiringAction.toRingHom _ _ a)
-  one_smul I :=
-    congr_arg (I.map ·) (RingHom.ext <| one_smul M) |>.trans I.map_id
-  mul_smul a₁ a₂ I :=
-    congr_arg (I.map ·) (RingHom.ext <| mul_smul _ _) |>.trans (I.map_map _ _).symm
-  smul_one a := by simp only [Ideal.one_eq_top]; exact Ideal.map_top _
-  smul_mul a I J := Ideal.map_mul (MulSemiringAction.toRingHom _ _ a) I J
-  smul_add a I J := Ideal.map_sup _ I J
-  smul_zero a := Ideal.map_bot
+#check asIdeal (I : TwoSidedIdeal R)
+--Here we view TwoSidedIdeal R as a left ideal R
 
+/- def lsmul : R →ₗ[R] M →ₗ[R] M :=
+  mk₂ R (· • ·) add_smul (fun _ _ _ => mul_smul _ _ _) smul_add fun r s m => by
+    simp only [smul_smul, smul_eq_mul, mul_comm]
+
+instance hasSMul' : SMul (Ideal R) (Submodule R M) :=
+  ⟨Submodule.map₂ (LinearMap.lsmul R M)⟩
+
+instance : Mul (Ideal R) :=
+  ⟨(· • ·)⟩
  -/
+-- Remark : The above is mulaction about ideal of commRing!!!! So all the definition need to rewrite.
+
+
+def product (I J : TwoSidedIdeal R) : TwoSidedIdeal R := sorry
+
+
+instance : Mul (TwoSidedIdeal R) :=
+  ⟨ product ⟩

@@ -1,4 +1,4 @@
-import Mathlib.RingTheory.TwoSidedIdeal.operations
+import Mathlib.RingTheory.TwoSidedIdeal.Operations
 
 variable {R : Type*} [Ring R]
 
@@ -13,7 +13,7 @@ def product (I J : TwoSidedIdeal R) : TwoSidedIdeal R :=
   TwoSidedIdeal.mk'
   (carrier := span {x : R | ∃ a ∈ I, ∃ b ∈ J, a * b = x})
   (ZeroMemClass.zero_mem _)
-  (fun {_ _} h₁ h₂ => AddMemClass.add_mem h₁ h₂)
+  (fun {_ _} h₁ h₂ ↦ AddMemClass.add_mem h₁ h₂)
   (fun {_} h ↦ NegMemClass.neg_mem h)
   (fun {x y} h ↦ mul_mem_left _ x y h)
   (fun {x y} h ↦ mul_mem_right _ x y h)

@@ -3,10 +3,10 @@ import Mathlib
 variable (F : Type*) [Field F] (ι : outParam Type*)
   [LinearOrderedCommGroupWithZero ι] [vR : Valued F ι]
 
-open Polynomial
+open Polynomial Valued
 
-theorem Wierstrass_preperation (f : PowerSeries (Valued.integer F)) (ne : f ≠ 0)
-    (π : Valued.integer F) (h : Ideal.span {π} = Valued.maximalIdeal F) : ∃ (m : ℕ),
-    ∃ (g : Polynomial (Valued.integer F)), ∃ (h : (PowerSeries (Valued.integer F))ˣ),
-    Monic g ∧ (∀ i : ℕ, i < degree g → (coeff g i) ∈ Valued.maximalIdeal F ) ∧
+theorem Wierstrass_preperation (f : PowerSeries 𝒪[F]) (ne : f ≠ 0)
+    (π : 𝒪[F] ) (hyp : Ideal.span {π} = 𝓂[F] ) : ∃ (m : ℕ),
+    ∃ (g : Polynomial 𝒪[F] ), ∃ (h : (PowerSeries 𝒪[F])ˣ),
+    Monic g ∧ (∀ i : ℕ, i < degree g → (coeff g i) ∈ 𝓂[F]) ∧
     f = (π ^ m) • g • h := sorry

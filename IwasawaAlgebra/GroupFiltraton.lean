@@ -28,32 +28,6 @@ def pos_orderMap := fun (i : Λ) => (⨆ μ > i, filtration.orderMap μ)
 
 end GroupFiltration
 
-/- variable [CanonicallyOrderedAddCommMonoid Λ] (fil : GroupFiltration G ℝ≥0∞) (test : GroupFiltration G (WithTop Λ))
-
-def valuation : G → ℝ≥0∞ := by
-    intro x
-    let y := {i : ℝ≥0∞ | x ∈ fil.orderMap i}
-    let z := sSup y
-    use z
-
-instance : SupSet (WithTop Λ) := by
-  by_cases h : ∀ b < (⊤ : (WithTop Λ)), ∃ a : (WithTop Λ), b < a
-  . refine { sSup := ?_ }
-    exact fun _ => (⊤ : (WithTop Λ))
-  . simp only [not_forall, Classical.not_imp, not_exists, not_lt] at h
-    -- replace h : ∃ x, ∃ (_ : x < ⊤), ∀ (x_1 : WithTop Λ), x_1 ≤ x
-    refine { sSup := ?_ }
-    exact fun _ => Classical.choose h
-
-def valuation_test : G → WithTop Λ := by
-    intro x
-    let y := {i : WithTop Λ | x ∈ test.orderMap i}
-    let z := sSup y
-    use z -/
-
---#check filtration.pos_orderMap
-
-#check Subgroup.iSup_induction'
 lemma filtration_normal [Nonempty { i : Λ // i > 0 }] (hd : Directed (ι := { i : Λ // i > 0 }) (· ≤ ·) fun i ↦ GroupFiltration.orderMap (G := G) i.val) :
     ∀ (i : Λ), i > 0 → Subgroup.Normal (filtration.orderMap i) := by
   intro i hi
@@ -100,10 +74,6 @@ lemma filtration_normal [Nonempty { i : Λ // i > 0 }] (hd : Directed (ι := { i
         exact Subgroup.mul_mem (filtration.orderMap i) hx h_comm_i
   exact this
 
--- def AssociatedGradedGroup : Type* := Π (i : Λ), (filtration.orderMap i)
-
--- (filtration_pos i).subgroupOf (filtration.orderMap i)
-
 lemma filtration_pos_sub (i : Λ) : (filtration.pos_orderMap i) ≤ filtration.orderMap i := by
   unfold GroupFiltration.pos_orderMap
   show ⨆ μ, ⨆ (_ : μ > i), GroupFiltration.orderMap μ ≤ GroupFiltration.orderMap i
@@ -122,7 +92,14 @@ variable [Nonempty { i : Λ // i > 0 }]
 instance fil_inf_nonempty_1 (i : Λ) (hi : 0 < i) : Nonempty { μ : Λ // 0 < i } := by
   simp only [nonempty_subtype, exists_const, hi]
 
-instance fil_inf_nonempty_2 (i : Λ) (hi : 0 < i) : Nonempty { μ : Λ // μ < i } := by sorry
+instance fil_inf_nonempty_2 (i : Λ) (hi : 0 < i) : Nonempty { μ : Λ // μ < i } := by
+  simp only [nonempty_subtype]
+  exact Exists.intro 0 hi
+
+instance fil_inf_nonempty_3 (i : Λ) (hi : 0 < i) : Nonempty { μ : Λ // 0 < μ ∧ μ < i } := by
+  simp only [nonempty_subtype]
+  haveI : DenselyOrdered Λ := sorry
+  refine exists_between hi
 
 lemma filtration_pos_normal (hd : Directed (ι := { i : Λ // i > 0 }) (· ≤ ·) fun i ↦ GroupFiltration.orderMap (G := G) i.val) {i : Λ} (hi : i > 0) : Subgroup.Normal (filtration.pos_orderMap i) := by
   refine { conj_mem := ?conj_mem }
@@ -137,74 +114,49 @@ lemma filtration_pos_normal (hd : Directed (ι := { i : Λ // i > 0 }) (· ≤ �
     have hg_top_pos : g⁻¹ ∈ (⨆ i > (0 : Λ), filtration.pos_orderMap i) := by
       unfold GroupFiltration.pos_orderMap
       simp only [gt_iff_lt, inv_mem_iff]
-
-      have : ⨆ (i : Λ), ⨆ (_ : 0 < i), ⨆ μ, ⨆ (_ : i < μ), GroupFiltration.orderMap μ = ⨆ (μ : Λ), ⨆ (_ : 0 < μ), ⨆ i, ⨆ (_ : i < μ), GroupFiltration.orderMap (G := G) μ := by
-        -- rw [@Subgroup.ext_iff]
+      have : ⨆ (i : Λ), ⨆ (_ : 0 < i), ⨆ μ, ⨆ (_ : i < μ), GroupFiltration.orderMap (G := G) μ = ⨆ (μ : Λ), ⨆ (_ : 0 < μ), ⨆ (i : Λ), ⨆ (_ : 0 < i ∧ i < μ), GroupFiltration.orderMap (G := G) μ := by
         apply le_antisymm
         · simp only [iSup_le_iff]
           intro j hj k hk
           have : GroupFiltration.orderMap k ≤ ⨆ (i : Λ) (_ : j < i), GroupFiltration.orderMap (G := G) i := le_biSup GroupFiltration.orderMap hk
-          have this_1 : ⨆ (i : Λ) (_ : i > j), GroupFiltration.orderMap (G := G) i = ⨆ (i : Λ) (_ : j < i), GroupFiltration.orderMap (G := G) i := by
-            simp only [gt_iff_lt]
+          apply LE.le.trans this
+          simp only [iSup_le_iff]
+          intro b hb
+          rw [@le_iSup_iff]
+          intro c hc
+          specialize hc b
+          have : 0 < b := by
+            exact pos_of_gt hb
+          simp only [iSup_le_iff, this, true_implies] at hc
+          specialize hc j ⟨hj, hb⟩
+          exact hc
+        · simp only [iSup_le_iff]
+          intro j hj k hk
           rw [@le_iSup_iff]
           intro b hb
-          simp only [iSup_le_iff] at hb
-          sorry
-        · sorry
-        /-ext x
-        constructor
-        . intro hy
-          have temp1 : ∃ (i : Λ), 0 < i ∧ x ∈ ⨆ μ, ⨆ (_ : i < μ), GroupFiltration.orderMap μ := by
-
-            sorry
-          have temp2 : ∃ (i μ : Λ), 0 < i ∧ i < μ ∧ x ∈ GroupFiltration.orderMap μ := by
-
-            sorry
-          -- have : Nonempty {(μ : Λ) // (0 : Λ) < (i : Λ)} := sorry
-          --letI : Nonempty { μ // 0 < i } := sorry
-          rw [iSup_subtype']
-          --Subgroup.mem_iSup_of_directed
-          simp only [Subtype.exists, exists_const, hi]
-          . have : ∀ (a : Λ), ⨆ (j : Λ), ⨆ (_ : j < a), GroupFiltration.orderMap a = GroupFiltration.orderMap (G := G) a := by
-              intro a
-              rw [@iSup_subtype']
-              rw [@iSup_eq_closure]
-              have : ⋃ (i : { j : Λ // j < a }), (@SetLike.coe (Subgroup G) G instSetLike (GroupFiltration.orderMap a) ) = (@SetLike.coe (Subgroup G) G instSetLike (GroupFiltration.orderMap a)) := by
-                -- haveI :
-                rw [@Set.iUnion_const]
-              nth_rw 2 [← closure_eq (K := GroupFiltration.orderMap a)]
-
-              nth_rw 2 [← this]
-
-              -- rw [@Subgroup.closure_iUnion]
-              -- simp only [closure_eq]
+          specialize hb k
+          simp only [iSup_le_iff, hk.1, true_implies] at hb
+          specialize hb j hk.2
+          exact hb
+      rw [this]
+      have : ⨆ (μ : Λ), ⨆ (_ : 0 < μ), ⨆ (i : Λ), ⨆ (_ : 0 < i ∧ i < μ), GroupFiltration.orderMap (G := G) μ = ⊤ := by
+        have : ∀(μ : Λ), ⨆ (i : Λ), ⨆ (_ : 0 < i ∧ i < μ), GroupFiltration.orderMap μ = GroupFiltration.orderMap (G := G) μ := by
+          intro μ
+          rw [@iSup_subtype', @iSup_eq_closure]
+          have : @Set.iUnion G { i // 0 < i ∧ i < μ } (fun i => ↑(GroupFiltration.orderMap (G := G) μ)) = (@SetLike.coe (Subgroup G) G instSetLike (GroupFiltration.orderMap μ)) := by
+            rw [@Set.Subset.antisymm_iff]
+            constructor
+            . sorry
+            . refine Set.subset_iUnion_of_subset ?right.i fun ⦃a⦄ a => a
+              refine Classical.indefiniteDescription (fun x => 0 < x ∧ x < μ) ?_
+              dsimp only
 
               sorry
-            obtain ⟨i₀, μ₀, hi₀μ₀⟩ := temp2
-            use μ₀
-            rw [this μ₀]
-            exact hi₀μ₀.2.2
-          .
             sorry
           sorry
-        . intro hy
-
-          sorry
-        sorry-/
-
-      have : ⨆ (i : Λ), ⨆ (_ : 0 < i), ⨆ μ, ⨆ (_ : i < μ), GroupFiltration.orderMap μ = ⨆ (μ : Λ), ⨆ (_ : 0 < μ), GroupFiltration.orderMap (G := G) μ := by
-        -- rw [@iSup_subtype', iSup_subtype']
-        -- rw [@iSup_prod']
-        rw [@Subgroup.ext_iff]
-        intro y
-        constructor
-        . intro hy
-          rw [@iSup_subtype'] at hy
-
-          sorry
-        . sorry
         sorry
-      sorry
+      rw [this]
+      exact trivial
     rw [iSup_subtype', Subgroup.mem_iSup_of_directed, Subtype.exists] at hg_top_pos
     simp only [exists_prop] at hg_top_pos
     exact hg_top_pos

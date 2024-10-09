@@ -48,7 +48,7 @@ def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
     dsimp only
     apply RingCat.ofHom
     constructor
-    · simp only [OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe,]
+    · simp only [OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe]
       sorry
     · intro a b
       simp only [OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe, QuotientMap]
@@ -67,21 +67,23 @@ def limitCone  :=
 /--The completion of a filtered ring is the limit of the quotient rings . -/
 def Completion := (limitCone R P).pt
 
+
 /--The natural ring homomorphism from `Completion R P` to `R`. -/
-def CompletionHom : (Completion R P) →+* R := by
-  constructor
-  simp_all only [OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe]
-  sorry
-
-
+def CompletionHom : (Completion R P) →+* R where
+  toFun := sorry
+  map_one' := sorry
+  map_mul' := sorry
+  map_zero' := sorry
+  map_add' := sorry
 
 /--We say `R` is complete if the natural ring homomorphism `CompletionHom` is isomorpism. -/
-def IsComplete : Prop := sorry
+def IsComplete : Prop :=
+  ∃ f : (Completion R P) ≃+* R, f.toRingHom = CompletionHom R P
 
 
 end
 
 
 
-#check (R ≃+* P)
+
 end Completion

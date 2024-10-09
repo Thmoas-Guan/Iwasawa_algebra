@@ -1,39 +1,87 @@
-import Mathlib.Topology.Algebra.ContinuousMonoidHom
+/-
+Copyright (c) 2024 Nailin Guan. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors:
+-/
 import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.Order.CompletePartialOrder
 import IwasawaAlgebra.MissingLemmas.TwoSidedIdeal
 import Mathlib.Algebra.Category.Ring.Limits
 
-variable {α : Type v} [CanonicallyOrderedAddCommMonoid α]
+variable {α : Type v} [CanonicallyLinearOrderedAddCommMonoid α]
 
 section definition
 
 variable (R : Type u) [Ring R]
 
-structure RingFiltration  where
+class RingFiltration where
   Fil : α → TwoSidedIdeal R
-  bot : Fil (0 : α) = ⊤
+  top : Fil (0 : α) = ⊤
   intersection_eq  : ∀ i : α, Fil i = ⨅ j < i, Fil j
   inclusion_le : ∀ i j : α,  ((Fil i) * (Fil j)) ≤ Fil (i + j)
 
 end definition
 
-section RingFiltration
+namespace RingFiltration
 
-variable (R : Type u) [Ring R] (P : RingFiltration R (α := α)) {x : α}
+open CategoryTheory Opposite TwoSidedIdeal
 
-open CategoryTheory
+section Completion
 
-def Intermap (P : RingFiltration R (α := α)) :=
+variable (R : Type u) [Ring R] (P : RingFiltration R (α := α))
+
+
+def Intermap :=
   fun (i : α) ↦ (⨅ μ > i, P.Fil μ)
 
-variable {J : Type v} [Category.{w} J] (F : J ⥤ RingCat.{u})
+def QuotientMap :=
+  fun (x : αᵒᵖ) ↦ ((P.Fil (unop x)).ringCon).Quotient
 
-/-- Auxiliary construction to obtain the group structure on the limit of rings. -/
-def limitConePtAux : Subring (Π j : J, F.obj j) where
-  carrier := {x | ∀ ⦃i j : J⦄ (π : i ⟶ j), F.map π (x i) = x j}
-  mul_mem' hx hy _ _ π := by simp_all only [Set.mem_setOf_eq, Pi.mul_apply, map_mul]
-  one_mem' := by simp_all only [Set.mem_setOf_eq, Pi.one_apply, map_one, implies_true]
-  add_mem' := by simp_all only [Set.mem_setOf_eq, Pi.add_apply, map_add, implies_true]
-  zero_mem' := by simp_all only [Set.mem_setOf_eq, Pi.zero_apply, map_zero, implies_true]
-  neg_mem' := by simp_all only [Set.mem_setOf_eq, Pi.neg_apply, map_neg, implies_true]
+
+instance {x : αᵒᵖ} : Ring (QuotientMap R P x) := (P.Fil (unop x)).ringCon.instRingQuotient
+
+
+def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
+  obj := fun a ↦  RingCat.of (P.QuotientMap R a)
+  map := by
+    intro x y f
+    dsimp only
+    apply RingCat.ofHom
+    constructor
+    · simp only [OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe,]
+      sorry
+    · intro a b
+      simp only [OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe, QuotientMap]
+      sorry
+    · sorry
+
+
+variable [Small (P.QuotientRingFunc ⋙ forget RingCat).sections]
+
+noncomputable section
+/-- The explicit limit cone in `Ringcat`. -/
+def limitCone  :=
+  RingCat.limitCone (QuotientRingFunc R P)
+
+
+/--The completion of a filtered ring is the limit of the quotient rings . -/
+def Completion := (limitCone R P).pt
+
+/--The natural ring homomorphism from `Completion R P` to `R`. -/
+def CompletionHom : (Completion R P) →+* R := by
+  constructor
+  simp_all only [OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe]
+  sorry
+
+
+
+/--We say `R` is complete if the natural ring homomorphism `CompletionHom` is isomorpism. -/
+def IsComplete : Prop := sorry
+
+
+end
+
+
+
+#check (R ≃+* P)
+end Completion

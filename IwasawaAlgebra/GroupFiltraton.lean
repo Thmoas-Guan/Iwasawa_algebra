@@ -39,7 +39,7 @@ lemma filtration_anti : Antitone (fun (i : Λ) => filtration.orderMap i) := by
     simp only [le_iInf_iff] at hc
     exact hc b (gt_of_ge_of_gt h hb)
 
-lemma filtration_anti' [Nonempty { i : Λ // i > 0 }] [NoMaxOrder Λ] {j : Λ} : Antitone (fun (b : (@Subtype Λ fun i => i > j)) => filtration.orderMap b.val) := by
+lemma filtration_anti' [Nonempty { i : Λ // i > 0 }] {j : Λ} : Antitone (fun (b : (@Subtype Λ fun i => i > j)) => filtration.orderMap b.val) := by
   intro x1 x2 h
   dsimp
   rw [← @Subtype.coe_le_coe] at h
@@ -87,8 +87,15 @@ instance filtration_directed : @Directed (Subgroup G) (@Subtype Λ fun i => i > 
   rw [← @Subtype.coe_le_coe] at h
   exact filtration_anti filtration h
 
-instance filtration_directed' [Nonempty { i : Λ // i > 0 }] [NoMaxOrder Λ] {j : Λ} : @Directed (Subgroup G) (@Subtype Λ fun i => i > j) (fun x1 x2 => x1 ≤ x2) fun x => filtration.orderMap (G := G) x.val := by
-  exact Antitone.directed_le (filtration_anti' filtration)
+instance filtration_directed' [Nonempty { i : Λ // i > 0 }] {j : Λ} : @Directed (Subgroup G) (@Subtype Λ fun i => i > j) (fun x1 x2 => x1 ≤ x2) fun x => filtration.orderMap (G := G) x.val := by
+  intro x1 x2
+  dsimp
+  use min x1 x2
+  constructor
+  . apply filtration_anti
+    simp only [Subtype.coe_le_coe, min_le_iff, le_refl, true_or]
+  . apply filtration_anti
+    simp only [Subtype.coe_le_coe, min_le_iff, le_refl, or_true]
 
 lemma filtration_union [Nonempty { i : Λ // i > 0 }] (g : G) : ∃ δ : Λ, δ > 0 ∧ g ∈ filtration.orderMap δ := by
   have hg_top : g ∈ (⨆ i > (0 : Λ), filtration.orderMap i) := by

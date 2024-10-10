@@ -13,6 +13,8 @@ universe u
 
 variable (G : Type u) [Group G]
 variable (Λ : Type*) [CanonicallyLinearOrderedAddCommMonoid Λ]
+
+/-- The fil -/
 class GroupFiltration where
   orderMap : Λ → Subgroup G
   index_bot_eq_top : orderMap 0 = ⊤
@@ -22,6 +24,21 @@ class GroupFiltration where
 
 variable (filtration : GroupFiltration G Λ) {G} {Λ}
 variable (i : Λ) (hi : i > 0)
+
+#check filtration
+#check GroupFiltration.union_eq_top
+
+
+lemma filtration_index_trivial (h : ¬ Nonempty { i : Λ // i > 0 }) (filtration : GroupFiltration G Λ) : (⊥ : Subgroup G) = ⊤ := by
+  simp only [gt_iff_lt, nonempty_subtype, not_exists, not_lt, nonpos_iff_eq_zero] at h
+  ext x
+  constructor
+  . intro _
+    trivial
+  . intro hx
+    rw [← filtration.union_eq_top] at hx
+    simp only [gt_iff_lt, lt_self_iff_false, not_false_eq_true, iSup_neg, iSup_bot, mem_bot, h] at hx
+    trivial
 
 lemma filtration_anti : Antitone (fun (i : Λ) => filtration.orderMap i) := by
   intro i j h
@@ -39,7 +56,7 @@ lemma filtration_anti : Antitone (fun (i : Λ) => filtration.orderMap i) := by
     simp only [le_iInf_iff] at hc
     exact hc b (gt_of_ge_of_gt h hb)
 
-lemma filtration_anti' [Nonempty { i : Λ // i > 0 }] {j : Λ} : Antitone (fun (b : (@Subtype Λ fun i => i > j)) => filtration.orderMap b.val) := by
+lemma filtration_anti' {j : Λ} : Antitone (fun (b : (@Subtype Λ fun i => i > j)) => filtration.orderMap b.val) := by
   intro x1 x2 h
   dsimp
   rw [← @Subtype.coe_le_coe] at h
@@ -49,7 +66,61 @@ namespace GroupFiltration
 
 def pos_orderMap := fun (i : Λ) => (⨆ μ > i, filtration.orderMap μ)
 
+def pos_orderMap' : Λ → Subgroup G := by
+  intro j
+  if h : ∃ (b : Λ), IsMax b then
+    if _ : j < Classical.choose h then
+      exact (⨆ μ > j, filtration.orderMap μ)
+    else
+      exact (⊥ : Subgroup G)
+  else
+    exact (⨆ μ > j, filtration.orderMap μ)
+
 end GroupFiltration
+
+lemma filtration_pos_anti : Antitone (fun (i : Λ) => filtration.pos_orderMap i) := by
+  intro i j h
+  dsimp
+  unfold GroupFiltration.pos_orderMap
+  simp only [gt_iff_lt, iSup_le_iff]
+  intro b hb
+  rw [@le_iSup_iff]
+  intro c hc
+  specialize hc b
+  simp only [iSup_le_iff] at hc
+  have : i < b := by
+    exact lt_of_le_of_lt h hb
+  exact hc this
+
+lemma filtration_pos'_anti : Antitone (fun (i : Λ) => filtration.pos_orderMap' i) := by
+  intro x y h
+  dsimp
+  unfold GroupFiltration.pos_orderMap'
+  dsimp
+  simp only [gt_iff_lt]
+  intro b hb
+  by_cases h₀ : ∃ (d : Λ), IsMax d
+  . simp_all only [dite_true]
+    by_cases h₁ : y < Classical.choose h₀
+    . have : x < Classical.choose h₀ := by exact lt_of_le_of_lt h h₁
+      simp_all only [ite_true]
+      exact filtration_pos_anti filtration h hb
+    . simp_all only [ite_false, mem_bot, not_lt]
+      exact Subgroup.one_mem _
+  . simp only [↓reduceDIte, h₀] at hb ⊢
+    exact filtration_pos_anti filtration h hb
+
+lemma filtration_pos_anti' {j : Λ} : Antitone (fun (b : (@Subtype Λ fun i => i > j)) => filtration.pos_orderMap b.val) := by
+  intro x1 x2 h
+  dsimp
+  rw [← @Subtype.coe_le_coe] at h
+  exact filtration_pos_anti filtration h
+
+lemma filtration_pos'_anti' {j : Λ} : Antitone (fun (b : (@Subtype Λ fun i => i > j)) => filtration.pos_orderMap' b.val) := by
+  intro x1 x2 h
+  dsimp
+  rw [← @Subtype.coe_le_coe] at h
+  exact filtration_pos'_anti filtration h
 
 lemma filtration_union_le : x < b → filtration.orderMap b ≤ ⨆ (μ : Λ) (_ : x < μ), filtration.orderMap μ := by
   intro h
@@ -87,7 +158,7 @@ instance filtration_directed : @Directed (Subgroup G) (@Subtype Λ fun i => i > 
   rw [← @Subtype.coe_le_coe] at h
   exact filtration_anti filtration h
 
-instance filtration_directed' [Nonempty { i : Λ // i > 0 }] {j : Λ} : @Directed (Subgroup G) (@Subtype Λ fun i => i > j) (fun x1 x2 => x1 ≤ x2) fun x => filtration.orderMap (G := G) x.val := by
+instance filtration_directed' {j : Λ} : @Directed (Subgroup G) (@Subtype Λ fun i => i > j) (fun x1 x2 => x1 ≤ x2) fun x => filtration.orderMap (G := G) x.val := by
   intro x1 x2
   dsimp
   use min x1 x2
@@ -166,8 +237,16 @@ lemma filtration_pos_union [Nonempty { i : Λ // i > 0 }] [DenselyOrdered Λ] (g
     . exact filtraion_pos_directed filtration
   . exact filtration_directed filtration
 
-lemma filtration_normal [Nonempty { i : Λ // i > 0 }] :
+lemma filtration_normal :
     ∀ (i : Λ), i > 0 → Subgroup.Normal (filtration.orderMap i) := by
+  by_cases h : ¬ Nonempty { i : Λ // i > 0 }
+  . intro i hi
+    simp only [nonempty_subtype, not_exists, not_lt, nonpos_iff_eq_zero] at h
+    specialize h i
+    simp_all only [lt_self_iff_false]
+  haveI : Nonempty { i : Λ // i > 0 } := by
+    rw [Mathlib.Tactic.PushNeg.not_not_eq] at h
+    exact h
   intro i hi
   refine {conj_mem := ?_}
   intro x hx g
@@ -201,7 +280,7 @@ lemma filtration_normal [Nonempty { i : Λ // i > 0 }] :
         exact Subgroup.mul_mem (filtration.orderMap i) hx h_comm_i
   exact this
 
-lemma filtration_pos_sub [Nonempty { i : Λ // i > 0 }] : (filtration.pos_orderMap i) ≤ filtration.orderMap i := by
+lemma filtration_pos_sub : (filtration.pos_orderMap i) ≤ filtration.orderMap i := by
   unfold GroupFiltration.pos_orderMap
   show ⨆ μ, ⨆ (_ : μ > i), GroupFiltration.orderMap μ ≤ GroupFiltration.orderMap i
   rw [@iSup₂_le_iff]
@@ -237,7 +316,7 @@ lemma filtration_pos_normal [DenselyOrdered Λ] [NoMaxOrder Λ] :
   replace hj_pos : j > 0 := pos_of_gt hj_pos
   simp only [(inv_inv g) ▸ filtration.commutator_mem j delta hj_pos hδ_pos x hj g⁻¹ hgδ]
 
-def filtrationQuotient [Nonempty { i : Λ // i > 0 }] [DenselyOrdered Λ] [NoMaxOrder Λ] (i : Λ) (hi : i > 0) :
+def filtrationQuotient [DenselyOrdered Λ] [NoMaxOrder Λ] (i : Λ) (hi : i > 0) :
   ((filtration.pos_orderMap i).subgroupOf (filtration.orderMap i)).Normal :=
   letI : (filtration.pos_orderMap i).Normal := filtration_pos_normal filtration i hi
   Subgroup.normal_subgroupOf

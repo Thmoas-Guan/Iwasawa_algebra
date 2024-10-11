@@ -9,6 +9,9 @@ import Mathlib.Order.CompletePartialOrder
 import IwasawaAlgebra.MissingLemmas.TwoSidedIdeal
 import Mathlib.Algebra.Category.Ring.Limits
 
+set_option maxHeartbeats 0
+
+
 variable {α : Type v} [CanonicallyLinearOrderedAddCommMonoid α]
 
 section definition
@@ -25,7 +28,7 @@ end definition
 
 namespace RingFiltration
 
-open CategoryTheory TwoSidedIdeal
+open CategoryTheory TwoSidedIdeal Opposite
 
 section Completion
 
@@ -42,18 +45,45 @@ def QuotientMap :=
 instance {x : αᵒᵖ} : Ring (QuotientMap R P x) := (P.Fil (Opposite.unop x)).ringCon.instRingQuotient
 
 
+open Quotient
 
-#check Quiver.Hom
-#check CategoryStruct.toQuiver
+lemma descending {x y : α} (h : x ≥ y) : P.Fil x ≤ P.Fil y := by
+  have := RingFiltration.intersection_eq (self := P)
+  replace h := gt_or_eq_of_le h
+  rcases h with h1 | h2
+  · rw [this]
+    sorry
+  · rw [h2]
 
-def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
+noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
   obj := fun a ↦  RingCat.of (P.QuotientMap R a)
   map := by
     intro x y f
     dsimp only
-    let ϕ := f.Hom
-    apply RingCat.ofHom
-
+    refine RingCat.ofHom ?f
+    unfold QuotientMap
+    let I := P.Fil (Opposite.unop x)
+    let J := P.Fil (Opposite.unop y)
+    have : P.Fil (Opposite.unop x) ≤ P.Fil (Opposite.unop y) := by
+      apply descending
+      sorry
+    exact {
+      toFun := fun A => RingCon.toQuotient (Quot.out A)
+      map_one' := by
+        simp
+        sorry
+      map_mul' := by
+        intro x y
+        simp_all only [RingCon.coe_one, id_eq, mul_one]
+        -- let z := Classical.choose_spec (toQuotient_exist R (Fil (Opposite.unop x)).ringCon A)
+        sorry
+      map_zero' := by
+        simp only [RingCon.coe_one, id_eq]
+        sorry
+      map_add' := by
+        simp only [RingCon.coe_one, id_eq, self_eq_add_right, forall_const]
+        sorry
+    }
 
 variable [Small (P.QuotientRingFunc ⋙ forget RingCat).sections]
 

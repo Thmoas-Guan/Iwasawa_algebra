@@ -3,6 +3,7 @@ Copyright (c) 2024 Nailin Guan. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors:
 -/
+import Mathlib
 import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.Order.CompletePartialOrder
 import IwasawaAlgebra.MissingLemmas.TwoSidedIdeal
@@ -24,7 +25,7 @@ end definition
 
 namespace RingFiltration
 
-open CategoryTheory Opposite TwoSidedIdeal
+open CategoryTheory TwoSidedIdeal
 
 section Completion
 
@@ -35,25 +36,23 @@ def Intermap :=
   fun (i : α) ↦ (⨅ μ > i, P.Fil μ)
 
 def QuotientMap :=
-  fun (x : αᵒᵖ) ↦ ((P.Fil (unop x)).ringCon).Quotient
+  fun (x : αᵒᵖ) ↦ ((P.Fil (Opposite.unop x)).ringCon).Quotient
 
 
-instance {x : αᵒᵖ} : Ring (QuotientMap R P x) := (P.Fil (unop x)).ringCon.instRingQuotient
+instance {x : αᵒᵖ} : Ring (QuotientMap R P x) := (P.Fil (Opposite.unop x)).ringCon.instRingQuotient
 
+
+
+#check Quiver.Hom
+#check CategoryStruct.toQuiver
 
 def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
   obj := fun a ↦  RingCat.of (P.QuotientMap R a)
   map := by
     intro x y f
     dsimp only
+    let ϕ := f.Hom
     apply RingCat.ofHom
-    constructor
-    · simp only [OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe]
-      sorry
-    · intro a b
-      simp only [OneHom.toFun_eq_coe, MonoidHom.toOneHom_coe, QuotientMap]
-      sorry
-    · sorry
 
 
 variable [Small (P.QuotientRingFunc ⋙ forget RingCat).sections]
@@ -79,6 +78,8 @@ def CompletionHom : (Completion R P) →+* R where
 /--We say `R` is complete if the natural ring homomorphism `CompletionHom` is isomorpism. -/
 def IsComplete : Prop :=
   ∃ f : (Completion R P) ≃+* R, f.toRingHom = CompletionHom R P
+
+
 
 
 end

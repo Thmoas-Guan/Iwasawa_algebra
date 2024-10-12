@@ -65,7 +65,7 @@ noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
     let J := P.Fil (unop y)
     have : I ≤ J :=
       descending R P (le_of_op_hom f)
-    exact Quotient.factor J I this
+    exact Quotient.factor I J this
 
 variable [Small (P.QuotientRingFunc ⋙ forget RingCat).sections]
 

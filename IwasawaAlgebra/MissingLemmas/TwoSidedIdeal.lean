@@ -50,8 +50,6 @@ theorem pow_mem_pow {x : R} (hx : x ∈ I) (n : ℕ) : x ^ n ∈ I ^ n := by sor
 end Product
 
 
-
-
 variable (I J : TwoSidedIdeal R)
 
 
@@ -76,7 +74,5 @@ def quotEquivOfEq (H : I = J) : (I.ringCon).Quotient ≃+* (J.ringCon).Quotient 
 
 
 end Quotient
-
-#check Ideal.Quotient.factor
 
 end TwoSidedIdealextra

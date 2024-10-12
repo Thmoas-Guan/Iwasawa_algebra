@@ -59,19 +59,20 @@ noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
   obj := fun a ↦  RingCat.of (P.QuotientMap R a)
   map := by
     intro x y f
-    dsimp only
     refine RingCat.ofHom ?f
     let I := P.Fil (unop x)
     let J := P.Fil (unop y)
-    have : I ≤ J :=
-      descending R P (le_of_op_hom f)
-    exact Quotient.factor I J this
+    exact Quotient.factor I J (descending R P (le_of_op_hom f))
+  map_id := sorry
+
+  map_comp := sorry
+
 
 variable [Small (P.QuotientRingFunc ⋙ forget RingCat).sections]
 
 noncomputable section
 /-- The explicit limit cone in `Ringcat`. -/
-def limitCone  :=
+def limitCone :=
   RingCat.limitCone (QuotientRingFunc R P)
 
 
@@ -95,7 +96,6 @@ def IsComplete : Prop :=
 
 
 end
-
 
 
 

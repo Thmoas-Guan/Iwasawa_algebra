@@ -47,34 +47,33 @@ end Product
 
 
 
-variable [Semiring S]  (I : TwoSidedIdeal R) (J : TwoSidedIdeal R)
+variable (I J : TwoSidedIdeal R)
 
 
 theorem subsingleton_iff : Subsingleton (I.ringCon).Quotient ↔ I = ⊤ := by sorry
 
 
-/--Reinterpret a two-sided ideal as an additive subgroup.-/
-def toAddSubgroup : AddSubgroup R where
-  carrier := I
-  add_mem' := add_mem
-  zero_mem' := by aesop
-  neg_mem' := neg_mem
-
-
 namespace Quotient
-/-- Given a ring homomorphism `f : R →+* S` sending all elements of an two-sided ideal to zero,
-lift it to the quotient by this ideal. -/
-def lift  (f : R →+* S) (H : ∀ a : R, a ∈ I → f a = 0) : (I.ringCon).Quotient →+* S := sorry
+
+
 /-- The ring homomorphism from the quotient by a smaller ideal to the quotient by a larger ideal.
+
 This is the `TwoSidedIdeal.Quotient` version of `Quot.Factor` -/
-def factor (H : I ≤ J) :
-    (I.ringCon).Quotient →+* (J.ringCon).Quotient := sorry
+def factor (H : I ≤ J) : (I.ringCon).Quotient →+* (J.ringCon).Quotient where
+  toFun := Quot.factor I.ringCon J.ringCon (by simp only [← RingCon.le_def, ringCon_le_iff.1 H])
+  map_one' := rfl
+  map_mul' := sorry
+  map_zero' := rfl
+  map_add' := sorry
+
 
 
 
 end Quotient
 
-
+#check Ideal.Quotient.factor
+#check Quot.mk
+#check Quot.factor
 
 
 end TwoSidedIdealextra

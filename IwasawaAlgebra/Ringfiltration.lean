@@ -29,7 +29,7 @@ end definition
 
 namespace RingFiltration
 
-open CategoryTheory TwoSidedIdeal Opposite
+open CategoryTheory TwoSidedIdeal Opposite TwoSidedIdealextra
 
 variable (R : Type u) [Ring R] (P : RingFiltration R (α := α))
 
@@ -53,7 +53,7 @@ lemma descending {x y : α} (h : y ≤ x) : P.Fil x ≤ P.Fil y := by
 
 section Completion
 
-instance {x : αᵒᵖ} : Ring (QuotientMap R P x) := (P.Fil (Opposite.unop x)).ringCon.instRingQuotient
+instance {x : αᵒᵖ} : Ring (QuotientMap R P x) := (P.Fil (unop x)).ringCon.instRingQuotient
 
 noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
   obj := fun a ↦  RingCat.of (P.QuotientMap R a)
@@ -61,28 +61,11 @@ noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
     intro x y f
     dsimp only
     refine RingCat.ofHom ?f
-    unfold QuotientMap
-    have : P.Fil (Opposite.unop x) ≤ P.Fil (Opposite.unop y) :=
+    let I := P.Fil (unop x)
+    let J := P.Fil (unop y)
+    have : I ≤ J :=
       descending R P (le_of_op_hom f)
-    exact {
-      toFun := fun A => RingCon.toQuotient (Quot.out A)
-      map_one' := by
-        simp only
-        refine (RingCon.eq (Fil (Opposite.unop y)).ringCon).mpr ?_
-
-        sorry
-      map_mul' := by
-        intro x y
-        simp_all only [RingCon.coe_one, id_eq, mul_one]
-        -- let z := Classical.choose_spec (toQuotient_exist R (Fil (Opposite.unop x)).ringCon A)
-        sorry
-      map_zero' := by
-        simp only [RingCon.coe_one, id_eq]
-        sorry
-      map_add' := by
-        simp only [RingCon.coe_one, id_eq, self_eq_add_right, forall_const]
-        sorry
-    }
+    exact Quotient.factor I J this
 
 variable [Small (P.QuotientRingFunc ⋙ forget RingCat).sections]
 

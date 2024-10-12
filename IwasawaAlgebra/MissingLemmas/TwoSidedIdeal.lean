@@ -46,17 +46,14 @@ end Product
 
 namespace Quotient
 
-open Quotient
-
-
-theorem subsingleton_iff : Subsingleton (I.ringCon).Quotient ↔ I = ⊤ := by
-  rw [← one_mem_iff, ← subsingleton_iff_zero_eq_one]
-  sorry
-
 
 variable [Semiring S]  (J : TwoSidedIdeal R) (I : TwoSidedIdeal R)
 
-/--Reinterpret a submodule as an additive subgroup.-/
+
+theorem subsingleton_iff : Subsingleton (I.ringCon).Quotient ↔ I = ⊤ := by sorry
+
+
+/--Reinterpret a two-sided ideal as an additive subgroup.-/
 def toAddSubgroup : AddSubgroup R := sorry
 
 /-- Given a ring homomorphism `f : R →+* S` sending all elements of an two-sided ideal to zero,

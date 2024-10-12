@@ -61,7 +61,7 @@ theorem subsingleton_iff : Subsingleton (I.ringCon).Quotient ↔ I = ⊤ := by s
 namespace Quotient
 
 
-/-- The ring homomorphism from the quotient by a smaller ideal to the quotient by a larger ideal.
+/-- The ring homomorphism from the quotient by a smaller two-sided ideal to the quotient by a larger one.
 
 This is the `TwoSidedIdeal.Quotient` version of `Quot.Factor` -/
 def factor (H : I ≤ J) : (I.ringCon).Quotient →+* (J.ringCon).Quotient where
@@ -72,9 +72,11 @@ def factor (H : I ≤ J) : (I.ringCon).Quotient →+* (J.ringCon).Quotient where
   map_zero' := rfl
   map_add' := Quotient.ind₂ fun _ _ => rfl
 
+def quotEquivOfEq (H : I = J) : (I.ringCon).Quotient ≃+* (J.ringCon).Quotient := sorry
+
 
 end Quotient
 
-
+#check Ideal.Quotient.factor
 
 end TwoSidedIdealextra

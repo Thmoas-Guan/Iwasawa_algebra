@@ -2,6 +2,11 @@ import Mathlib.RingTheory.TwoSidedIdeal.Operations
 import Mathlib
 variable {R : Type*} [Ring R]
 
+
+#check Ideal.Quotient.factor
+#check Quot.mk
+#check Quot.factor
+
 namespace TwoSidedIdealextra
 
 open TwoSidedIdeal
@@ -62,18 +67,14 @@ This is the `TwoSidedIdeal.Quotient` version of `Quot.Factor` -/
 def factor (H : I ≤ J) : (I.ringCon).Quotient →+* (J.ringCon).Quotient where
   toFun := Quot.factor I.ringCon J.ringCon (by simp only [← RingCon.le_def, ringCon_le_iff.1 H])
   map_one' := rfl
-  map_mul' := sorry
+  map_mul' := Quotient.ind₂ fun _ _ => rfl
+  --Induction on variables
   map_zero' := rfl
-  map_add' := sorry
-
-
+  map_add' := Quotient.ind₂ fun _ _ => rfl
 
 
 end Quotient
 
-#check Ideal.Quotient.factor
-#check Quot.mk
-#check Quot.factor
 
 
 end TwoSidedIdealextra

@@ -52,11 +52,9 @@ end Product
 
 variable (I J : TwoSidedIdeal R)
 
+namespace Quotient
 
 theorem subsingleton_iff : Subsingleton (I.ringCon).Quotient ↔ I = ⊤ := by sorry
-
-
-namespace Quotient
 
 
 /-- The ring homomorphism from the quotient by a smaller two-sided ideal to the quotient by a larger one.
@@ -70,18 +68,7 @@ def factor (H : I ≤ J) : (I.ringCon).Quotient →+* (J.ringCon).Quotient where
   map_zero' := rfl
   map_add' := Quotient.ind₂ fun _ _ => rfl
 
-
-
-open CategoryTheory
-
-theorem factorEqid : RingCat.ofHom (factor I I (le_refl I)) = 𝟙 (RingCat.of (I.ringCon).Quotient) := sorry
-
-
-
-def quotEquivOfEq (H : I = J) : (I.ringCon).Quotient ≃+* (J.ringCon).Quotient := sorry
-
-
-
 end Quotient
+
 
 end TwoSidedIdealextra

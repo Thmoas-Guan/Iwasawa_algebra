@@ -10,7 +10,7 @@ import IwasawaAlgebra.MissingLemmas.TwoSidedIdeal
 import Mathlib.Algebra.Category.Ring.Limits
 
 set_option maxHeartbeats 0
-set_option maxRecDepth 1000000
+set_option maxRecDepth 1000000000
 
 variable {α : Type v} [CanonicallyLinearOrderedAddCommMonoid α]
 
@@ -20,9 +20,9 @@ variable (R : Type u) [Ring R]
 
 class RingFiltration where
   Fil : α → TwoSidedIdeal R
-  --top : Fil (0 : α) = ⊤
+--top : Fil (0 : α) = ⊤
   intersection_eq  : ∀ i : α, Fil i = ⨅ j < i, Fil j
-  inclusion_le : ∀ i j : α,  ((Fil i) * (Fil j)) ≤ Fil (i + j)
+  inclusion_le : ∀ i j : α,  (Fil i) * (Fil j) ≤ Fil (i + j)
 
 end definition
 
@@ -56,16 +56,28 @@ section Completion
 instance {x : αᵒᵖ} : Ring (QuotientMap R P x) := (P.Fil (unop x)).ringCon.instRingQuotient
 
 noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
-  obj := fun a ↦  RingCat.of (P.QuotientMap R a)
-  map := by
-    intro x y f
+  obj := fun a => RingCat.of (P.QuotientMap R a)
+  map := fun f => RingCat.ofHom (Quotient.factor _ _ (descending R P (le_of_op_hom f)))
+/-  intro x y f
     refine RingCat.ofHom ?f
     let I := P.Fil (unop x)
     let J := P.Fil (unop y)
-    exact Quotient.factor I J (descending R P (le_of_op_hom f))
-  map_id := sorry
+    exact Quotient.factor I J (descending R P (le_of_op_hom f)) -/
 
-  map_comp := sorry
+  map_id := fun x => Quotient.factorEqid (R := R) (Fil (unop x))
+
+  map_comp := by
+    simp
+    intro x y z f g
+    have h1 := le_of_op_hom f
+    have h2 := le_of_op_hom g
+    sorry
+
+instance : Small (P.QuotientRingFunc ⋙ forget RingCat).sections := sorry
+
+  --small_lift ↑(QuotientRingFunc R P ⋙ forget RingCat).sections
+
+
 
 
 variable [Small (P.QuotientRingFunc ⋙ forget RingCat).sections]

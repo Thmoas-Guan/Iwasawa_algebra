@@ -6,8 +6,8 @@ Authors:
 import Mathlib
 import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.Order.CompletePartialOrder
-import IwasawaAlgebra.MissingLemmas.TwoSidedIdeal
 import Mathlib.Algebra.Category.Ring.Limits
+import IwasawaAlgebra.MissingLemmas.TwoSidedIdealCategory
 
 set_option maxHeartbeats 0
 set_option maxRecDepth 1000000000
@@ -51,27 +51,26 @@ lemma descending {x y : α} (h : y ≤ x) : P.Fil x ≤ P.Fil y := by
   simp only [le_iInf_iff, iInf_le_iff]
   exact fun a ha b hb => hb a (gt_of_ge_of_gt h ha)
 
+lemma opdescending {x y : αᵒᵖ} (f : x ⟶ y) : P.Fil (unop x) ≤ P.Fil (unop y) :=
+  descending R P (le_of_op_hom f)
+
 section Completion
 
 instance {x : αᵒᵖ} : Ring (QuotientMap R P x) := (P.Fil (unop x)).ringCon.instRingQuotient
 
 noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
   obj := fun a => RingCat.of (P.QuotientMap R a)
-  map := fun f => RingCat.ofHom (Quotient.factor _ _ (descending R P (le_of_op_hom f)))
+  map := fun f => RingCat.ofHom (Quotient.factor _ _ (opdescending R P f))
 /-  intro x y f
     refine RingCat.ofHom ?f
     let I := P.Fil (unop x)
     let J := P.Fil (unop y)
     exact Quotient.factor I J (descending R P (le_of_op_hom f)) -/
 
-  map_id := fun x => Quotient.factorEqid (R := R) (Fil (unop x))
+  map_id := fun x => factorEqid (P.Fil (unop x))
 
-  map_comp := by
-    simp
-    intro x y z f g
-    have h1 := le_of_op_hom f
-    have h2 := le_of_op_hom g
-    sorry
+  map_comp := fun f g  => factorcomp _ _ _ (opdescending R P f) (opdescending R P g)
+
 
 instance : Small (P.QuotientRingFunc ⋙ forget RingCat).sections := sorry
 

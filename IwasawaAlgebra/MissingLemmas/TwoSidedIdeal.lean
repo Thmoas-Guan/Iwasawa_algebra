@@ -70,7 +70,16 @@ def factor (H : I ≤ J) : (I.ringCon).Quotient →+* (J.ringCon).Quotient where
   map_zero' := rfl
   map_add' := Quotient.ind₂ fun _ _ => rfl
 
+
+
+open CategoryTheory
+
+theorem factorEqid : RingCat.ofHom (factor I I (le_refl I)) = 𝟙 (RingCat.of (I.ringCon).Quotient) := sorry
+
+
+
 def quotEquivOfEq (H : I = J) : (I.ringCon).Quotient ≃+* (J.ringCon).Quotient := sorry
+
 
 
 end Quotient

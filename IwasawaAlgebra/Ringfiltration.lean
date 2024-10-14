@@ -7,7 +7,7 @@ import Mathlib
 import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.Order.CompletePartialOrder
 import Mathlib.Algebra.Category.Ring.Limits
-import IwasawaAlgebra.MissingLemmas.TwoSidedIdealCategory
+import IwasawaAlgebra.MissingLemmas.TwoSidedIdeal
 
 set_option maxHeartbeats 0
 set_option maxRecDepth 1000000000
@@ -67,9 +67,9 @@ noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
     let J := P.Fil (unop y)
     exact Quotient.factor I J (descending R P (le_of_op_hom f)) -/
 
-  map_id := fun x => factorEqid (P.Fil (unop x))
+  map_id := fun x => Quotient.factorEqid (P.Fil (unop x))
 
-  map_comp := fun f g => factorcomp _ _ _ (opdescending R P f) (opdescending R P g)
+  map_comp := fun f g => Quotient.factorcomp _ _ _ (opdescending R P f) (opdescending R P g)
 
 
 instance : Small (P.QuotientRingFunc ⋙ forget RingCat).sections := sorry
@@ -77,7 +77,7 @@ instance : Small (P.QuotientRingFunc ⋙ forget RingCat).sections := sorry
   --small_lift ↑(QuotientRingFunc R P ⋙ forget RingCat).sections
 
 
-
+#check Nat.fib
 
 variable [Small (P.QuotientRingFunc ⋙ forget RingCat).sections]
 

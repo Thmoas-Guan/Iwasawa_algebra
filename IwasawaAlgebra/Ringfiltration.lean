@@ -31,6 +31,10 @@ namespace RingFiltration
 
 open CategoryTheory TwoSidedIdeal Opposite TwoSidedIdealextra
 
+
+
+section SupplementaryDefinition
+
 variable (R : Type u) [Ring R] (P : RingFiltration R (α := α))
 
 theorem top' : ⨅ (j : α) (_ : j < 0), P.Fil j = ⊤ := by
@@ -44,7 +48,11 @@ def Intermap :=
   fun (i : α) ↦ (⨅ μ > i, P.Fil μ)
 
 def QuotientMap :=
-  fun (x : αᵒᵖ) ↦ ((P.Fil (Opposite.unop x)).ringCon).Quotient
+  fun (x : αᵒᵖ) ↦ ((P.Fil (unop x)).ringCon).Quotient
+
+end SupplementaryDefinition
+
+variable {R : Type u} [Ring R] {P : RingFiltration R (α := α)}
 
 lemma descending {x y : α} (h : y ≤ x) : P.Fil x ≤ P.Fil y := by
   repeat rw [P.intersection_eq]
@@ -52,17 +60,19 @@ lemma descending {x y : α} (h : y ≤ x) : P.Fil x ≤ P.Fil y := by
   exact fun a ha b hb => hb a (gt_of_ge_of_gt h ha)
 
 lemma descending' {x y : αᵒᵖ} (f : x ⟶ y) : P.Fil (unop x) ≤ P.Fil (unop y) :=
-  descending R P (le_of_op_hom f)
+  descending (le_of_op_hom f)
 
 section Completion
+
+variable (R : Type u) [Ring R] (P : RingFiltration R (α := α))
 
 instance {x : αᵒᵖ} : Ring (QuotientMap R P x) := (P.Fil (unop x)).ringCon.instRingQuotient
 
 noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
   obj := fun a => RingCat.of (P.QuotientMap R a)
-  map := fun f => RingCat.ofHom (Quotient.factor _ _ (descending' R P f))
+  map := fun f => RingCat.ofHom (Quotient.factor _ _ (descending' f))
   map_id := fun x => Quotient.factorEqid (P.Fil (unop x))
-  map_comp := fun f g => Quotient.factorcomp _ _ _ (descending' R P f) (descending' R P g)
+  map_comp := fun f g => Quotient.factorcomp _ _ _ (descending' f) (descending' g)
 
 
 instance : Small (P.QuotientRingFunc ⋙ forget RingCat).sections := sorry

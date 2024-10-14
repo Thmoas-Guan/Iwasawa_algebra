@@ -7,6 +7,11 @@ open TwoSidedIdealextra TwoSidedIdeal CategoryTheory
 
 theorem factorEqid :
     RingCat.ofHom (Quotient.factor I I (le_refl I)) = 𝟙 (RingCat.of (I.ringCon).Quotient) := by
+  show Quotient.factor I I (le_refl I) = RingHom.id ((I.ringCon).Quotient)
+  ext t
+  unfold Quotient.factor
+  simp
+  sorry
   sorry
 
 

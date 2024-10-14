@@ -68,6 +68,8 @@ def factor (H : I ≤ J) : (I.ringCon).Quotient →+* (J.ringCon).Quotient where
   map_zero' := rfl
   map_add' := Quotient.ind₂ fun _ _ => rfl
 
+theorem factoreqid : Quotient.factor I I (le_refl I) = RingHom.id ((I.ringCon).Quotient) := sorry
+
 end Quotient
 
 

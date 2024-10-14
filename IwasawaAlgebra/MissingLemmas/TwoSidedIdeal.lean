@@ -68,9 +68,15 @@ def factor (H : I ≤ J) : (I.ringCon).Quotient →+* (J.ringCon).Quotient where
   map_zero' := rfl
   map_add' := Quotient.ind₂ fun _ _ => rfl
 
-theorem factoreqid : Quotient.factor I I (le_refl I) = RingHom.id ((I.ringCon).Quotient) := sorry
+theorem factorEqid : factor I I (le_refl I) = RingHom.id ((I.ringCon).Quotient) :=
+  RingHom.ext fun t => Quot.inductionOn t fun _ => rfl
+
+theorem factorcomp (I J K : TwoSidedIdeal R) (h₁ : I ≤ J) (h₂ : J ≤ K) :
+    (Quotient.factor I K (h₁.trans h₂)) =
+    RingHom.comp (Quotient.factor J K h₂) (Quotient.factor I J h₁) :=
+  RingHom.ext fun t => Quot.inductionOn t fun _ => rfl
+
+
 
 end Quotient
-
-
 end TwoSidedIdealextra

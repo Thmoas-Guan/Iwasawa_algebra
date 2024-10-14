@@ -69,7 +69,7 @@ noncomputable def QuotientRingFunc : αᵒᵖ ⥤ RingCat.{u} where
 
   map_id := fun x => factorEqid (P.Fil (unop x))
 
-  map_comp := fun f g  => factorcomp _ _ _ (opdescending R P f) (opdescending R P g)
+  map_comp := fun f g => factorcomp _ _ _ (opdescending R P f) (opdescending R P g)
 
 
 instance : Small (P.QuotientRingFunc ⋙ forget RingCat).sections := sorry
@@ -93,7 +93,9 @@ def Completion := (limitCone R P).pt
 
 /--The natural ring homomorphism from `Completion R P` to `R`. -/
 def CompletionHom : (Completion R P) →+* R where
-  toFun := sorry
+  toFun := by
+    intro a
+    sorry
   map_one' := sorry
   map_mul' := sorry
   map_zero' := sorry

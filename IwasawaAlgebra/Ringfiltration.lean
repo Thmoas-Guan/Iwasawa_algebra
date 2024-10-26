@@ -90,10 +90,11 @@ def limitCone :=
 def Completion := (limitCone R P).pt
 
 
-/--The natural ring homomorphism from `Completion R P` to `R`. -/
-def CompletionHom : (Completion R P) →+* R where
+/--The natural ring homomorphism from `R`to `Completion R P`. -/
+def CompletionHom :R →+* (Completion R P)  where
   toFun := by
     intro a
+    let x := (Completion R P).2
     sorry
   map_one' := sorry
   map_mul' := sorry
@@ -102,7 +103,7 @@ def CompletionHom : (Completion R P) →+* R where
 
 /--We say `R` is complete if the natural ring homomorphism `CompletionHom` is isomorpism. -/
 def IsComplete : Prop :=
-  ∃ f : (Completion R P) ≃+* R, f.toRingHom = CompletionHom R P
+  ∃ f : R ≃+* (Completion R P), f.toRingHom = CompletionHom R P
 
 
 

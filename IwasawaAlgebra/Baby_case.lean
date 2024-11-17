@@ -3,6 +3,7 @@ import Mathlib
 variable (F : Type*) [Field F] (ι : outParam Type*)
   [LinearOrderedCommGroupWithZero ι] [vR : Valued F ι]
 
+variable (R : Type*) [CommRing R] (m : Ideal R) (hmax : m.IsMaximal)
 open Polynomial Valued
 
 theorem Wierstrass_preperation (f : PowerSeries 𝒪[F]) (ne : f ≠ 0)
@@ -50,3 +51,4 @@ lemma h (n : ℕ) (npos : n > 0) (π : 𝒪[F]) (f : PowerSeries (𝒪[F] ⧸ Id
         --let f' := f ⧸ Ideal.span {π ^ n}
         #check ih npos'
         sorry
+-/

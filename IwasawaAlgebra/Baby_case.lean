@@ -17,6 +17,12 @@ set_option diagnostics true
 
 
 
+lemma hneq0 (hmax : m.IsMaximal) (f : PowerSeries (R ⧸ m))
+    (ne : ∃ (k : ℕ), ∀ (coeff' : m), (PowerSeries.coeff _ k) f ≠ Ideal.Quotient.mk m coeff') :
+    ∃ (g : Polynomial (R ⧸ m)), ∃ (h : (PowerSeries (R ⧸ m))ˣ), Monic g ∧
+    (∀ i : ℕ, i < degree g → (∃ coeff' : m, coeff g i = Ideal.Quotient.mk m coeff')) ∧ f = g • h := by
+    sorry
+
 lemma hh (n : ℕ) (npos : n > 0) (hmax : m.IsMaximal) (f : PowerSeries (R ⧸ m ^ n))
     (ne : ∃ (k : ℕ), ∀ (coeff' : m), (PowerSeries.coeff _ k) f ≠ Ideal.Quotient.mk (m ^ n) coeff') :
     ∃ (g : Polynomial (R ⧸ m ^ n)), ∃ (h : (PowerSeries (R ⧸ m ^ n))ˣ), Monic g ∧

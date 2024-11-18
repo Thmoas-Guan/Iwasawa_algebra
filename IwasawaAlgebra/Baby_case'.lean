@@ -5,6 +5,14 @@ set_option maxHeartbeats 500000
 variable {R : Type*} [CommRing R] {m : Ideal R} (hmax : m.IsMaximal)
 open Polynomial PowerSeries
 
+theorem PowerSeries.map_surjective {R : Type u} {S : Type v} [Semiring R] [Semiring S] (f : R →+* S) (hf : Function.Surjective ⇑f) :
+    Function.Surjective (PowerSeries.map f) := by
+  intro g
+  use PowerSeries.mk fun k ↦ Function.surjInv hf (PowerSeries.coeff _ k g)
+  ext k
+  simp only [Function.surjInv, coeff_map, coeff_mk]
+  exact Classical.choose_spec (hf ((coeff S k) g))
+
 section
 
 variable (m)
@@ -21,6 +29,30 @@ def hom (n : ℕ) : (R ⧸ m ^ (n + 1)) →+* (R ⧸ m ^ n) :=
   (fun _ ha ↦ Ideal.Quotient.eq_zero_iff_mem.mpr ((Ideal.pow_le_pow_right (Nat.le_add_right n 1)) ha))
 
 lemma hom_commute (n : ℕ) : ((hom m n).comp (Ideal.Quotient.mk (m ^ (n + 1)))) = (Ideal.Quotient.mk (m ^ n)) := rfl
+
+lemma hom_surjective (n : ℕ) : Function.Surjective (hom m n) := by
+  apply Ideal.Quotient.lift_surjective_of_surjective
+  exact Ideal.Quotient.mk_surjective
+
+lemma hom_ker (n : ℕ) : RingHom.ker (hom m n) = (m ^ n).map (Ideal.Quotient.mk (m ^ (n + 1))) := by
+  sorry
+
+variable {m} in
+lemma IsUnit_of_IsUnit_image {n : ℕ} (npos : n > 0){a : R ⧸ m ^ (n + 1)} (h : IsUnit ((hom m n) a)) : IsUnit a := by
+  rcases isUnit_iff_exists.mp h with ⟨b, hb, _⟩
+  rcases hom_surjective m n b with ⟨b', hb'⟩
+  rw [← hb', ← map_one (hom m n), ← map_mul] at hb
+  apply (RingHom.sub_mem_ker_iff (hom m n)).mpr at hb
+  rw [hom_ker m n] at hb
+  rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective hb with ⟨c, hc, eq⟩
+  have : a * (b' * (1 - ((Ideal.Quotient.mk (m ^ (n + 1))) c))) = 1 := by
+    calc
+      _ = (a * b' - 1) * (1 - ((Ideal.Quotient.mk (m ^ (n + 1))) c)) + (1 - ((Ideal.Quotient.mk (m ^ (n + 1))) c)) := by ring
+      _ = 1 := by
+        rw [← eq, mul_sub, mul_one, sub_add_sub_cancel', sub_eq_self, ← map_mul, Ideal.Quotient.eq_zero_iff_mem, pow_add]
+        apply Ideal.mul_mem_mul hc (Ideal.mul_le_left (I := m ^ (n - 1)) _)
+        simpa only [← pow_add, Nat.sub_add_cancel npos] using hc
+  exact isUnit_of_mul_eq_one _ _ this
 
 end
 
@@ -45,7 +77,7 @@ lemma ntriv_deg_spec {f : PowerSeries (R ⧸ m ^ n)} (ntriv : ∃ (k : ℕ), (Po
 -/
 set_option linter.unusedTactic false
 
-lemma map_ntriv {f : PowerSeries (R ⧸ m ^ (n + 1))} (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ (n + 1)))) :
+lemma map_ntriv {n : ℕ} {f : PowerSeries (R ⧸ m ^ (n + 1))} (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ (n + 1)))) :
     ∃ k, (PowerSeries.coeff (R ⧸ m ^ n) k) (PowerSeries.map (hom m n) f) ∉ Ideal.map (Ideal.Quotient.mk (m ^ n)) m := by
   sorry
 
@@ -90,22 +122,35 @@ lemma hh (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m
 
           --Uniqueness
           sorry
-      · let f' : PowerSeries (R ⧸ m ^ n) := PowerSeries.map (hom m n) f
-        rcases ih (Nat.zero_lt_of_ne_zero neq0) f' (map_ntriv ntriv) with ⟨g', ⟨h', mon, hg', eq⟩, uniq⟩
-        --take arbitrary lift of `f' g' h'`, get `f'' - g'' * h''` coeffs in `m ^ n`,
-        --split `h''.inv * (f'' - g'' * h'')` at power `Nat.find ntriv`
-        --add the lower part onto `g''` and add the higher part multiplicated by `h''` onto `h''`
+      · rcases ih (Nat.zero_lt_of_ne_zero neq0) (PowerSeries.map (hom m n) f) (map_ntriv ntriv) with ⟨g, ⟨h, mon, deg, hg, eq⟩, uniq⟩
+        --take arbitrary lift of `f g h`, get `f' - g' * h'` coeffs in `m ^ n`,
+        --split `h'.inv * (f' - g' * h')` at power `Nat.find ntriv`
+        --add the lower part onto `g'` and add the higher part multiplicated by `h'` onto `h'`
+        rcases Polynomial.map_surjective (hom m n) (hom_surjective m n) g with ⟨g', hg'⟩
+        rcases PowerSeries.map_surjective (hom m n) (hom_surjective m n) h.val with ⟨h', hh'⟩
+        have : IsUnit h' := by
+          apply PowerSeries.isUnit_iff_constantCoeff.mpr
+          have := PowerSeries.isUnit_iff_constantCoeff.mp (Units.isUnit h)
+          rw [← hh', ← PowerSeries.coeff_zero_eq_constantCoeff_apply] at this
+          simp only [PowerSeries.coeff_map, coeff_zero_eq_constantCoeff] at this
+          exact IsUnit_of_IsUnit_image (Nat.zero_lt_of_ne_zero neq0) this
+        let h'' : (R ⧸ m ^ (n + 1))⟦X⟧ˣ := IsUnit.unit this
+        have val : h''.1 = h' := rfl
+        have : (Polynomial.map (hom m n) g') = (PowerSeries.map (hom m n) g') := by
+          ext
+          simp
+
+
         sorry
 
 section
 
-variable (F : Type*) [Field F] (ι : outParam Type*)
-  [LinearOrderedCommGroupWithZero ι] [vR : Valued F ι]
+variable (F : Type*) [Field F] (ι : outParam Type*) [LinearOrderedCommGroupWithZero ι] [vR : Valued F ι]
 open Valued
 
 theorem Wierstrass_preperation (f : PowerSeries 𝒪[F]) (ne : f ≠ 0)
     (π : 𝒪[F] ) (hyp : Ideal.span {π} = 𝓂[F] ) : ∃ (m : ℕ),
-    ∃ (g : Polynomial 𝒪[F] ), ∃ (h : (PowerSeries 𝒪[F])ˣ),
+    ∃! (g : Polynomial 𝒪[F] ), ∃ (h : (PowerSeries 𝒪[F])ˣ),
     Monic g ∧ (∀ i : ℕ, i < degree g → (coeff g i) ∈ 𝓂[F]) ∧
     f = (π ^ m) • g • h := sorry
 

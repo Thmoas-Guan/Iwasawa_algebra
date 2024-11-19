@@ -121,7 +121,14 @@ lemma hh (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m
           rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective hx with ⟨r, hr, eq⟩
           rw [← eq, Ideal.Quotient.eq_zero_iff_mem, neq0, zero_add, pow_one]
           exact hr
-        use Polynomial.X ^ f.order.get (order_finite_iff_ne_zero.mpr (ne0 ntriv))
+        have eqfind : f.order.get (order_finite_iff_ne_zero.mpr (ne0 ntriv)) = Nat.find ntriv := by
+          apply PartENat.get_eq_iff_eq_coe.mpr (order_eq_nat.mpr _)
+          constructor
+          · by_contra h
+            absurd Nat.find_spec ntriv
+            simp only [h, Submodule.zero_mem]
+          · exact fun i hi ↦ this <| Decidable.not_not.mp (Nat.find_min ntriv hi)
+        use Polynomial.X ^ Nat.find ntriv
         constructor
         · let max' : (m ^ (n + 1)).IsMaximal := by simpa only [neq0, zero_add, pow_one] using hmax
           let hField : Field (R ⧸ m ^ (n + 1)) := Ideal.Quotient.field (m ^ (n + 1))
@@ -129,25 +136,26 @@ lemma hh (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m
           constructor
           · apply monic_X_pow
           · simp only [degree_pow, degree_X, nsmul_eq_mul, mul_one, Nat.cast_lt,
-            Polynomial.coeff_X_pow, Nat.cast_inj]
+            Polynomial.coeff_X_pow, Nat.cast_inj, eqfind, true_and]
             constructor
-            · apply PartENat.get_eq_iff_eq_coe.mpr (order_eq_nat.mpr _)
-              constructor
-              · by_contra h
-                absurd Nat.find_spec ntriv
-                simp only [h, Submodule.zero_mem]
-              · exact fun i hi ↦ this <| Decidable.not_not.mp (Nat.find_min ntriv hi)
-            · constructor
-              · intro a ha
-                convert (Submodule.zero_mem (Ideal.map (Ideal.Quotient.mk (m ^ (n + 1))) m))
-                simp [Nat.ne_of_lt ha]
-              · rw [PowerSeries.Unit_of_divided_by_X_pow_order_nonzero (ne0 ntriv)]
-                convert (PowerSeries.self_eq_X_pow_order_mul_divided_by_X_pow_order (ne0 ntriv)).symm
-                simp only [Polynomial.coe_pow, Polynomial.coe_X]
-        · rintro g' ⟨h, mon, deg, hg, eq⟩
-
-          --Uniqueness
-          sorry
+            · intro a ha
+              convert (Submodule.zero_mem (Ideal.map (Ideal.Quotient.mk (m ^ (n + 1))) m))
+              simp [Nat.ne_of_lt ha]
+            · rw [PowerSeries.Unit_of_divided_by_X_pow_order_nonzero (ne0 ntriv)]
+              convert (PowerSeries.self_eq_X_pow_order_mul_divided_by_X_pow_order (ne0 ntriv)).symm
+              simp only [Polynomial.coe_pow, Polynomial.coe_X, eqfind]
+        · rintro g' ⟨h, mon, deg, hg', eq⟩
+          apply Polynomial.ext
+          intro i
+          simp only [Polynomial.coeff_X_pow]
+          by_cases H' : i = Nat.find ntriv
+          · rw [if_pos H', H', ← (natDegree_eq_of_degree_eq_some deg), Polynomial.Monic.coeff_natDegree mon]
+          · rcases Nat.lt_or_gt_of_ne H' with gt|lt
+            · rw [if_neg (Nat.ne_of_lt gt)]
+              exact this ((hg' i) (deg ▸ Nat.cast_lt.mpr gt))
+            · rw [if_neg (Nat.ne_of_gt lt)]
+              apply Polynomial.coeff_eq_zero_of_degree_lt
+              exact deg ▸ (Nat.cast_lt.mpr lt)
       · rcases ih (Nat.zero_lt_of_ne_zero neq0) (PowerSeries.map (hom m n) f) (map_ntriv (Nat.zero_lt_of_ne_zero neq0) ntriv) with ⟨g, ⟨h, mon, deg, hg, eq⟩, uniq⟩
         --take arbitrary lift of `f g h`, get `f' - g' * h'` coeffs in `m ^ n`,
         rcases Polynomial.map_surjective (hom m n) (hom_surjective m n) g with ⟨g', hg'⟩

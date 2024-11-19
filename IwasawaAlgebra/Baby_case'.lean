@@ -1,6 +1,7 @@
 import Mathlib
 
 set_option maxHeartbeats 500000
+set_option linter.unusedTactic false
 
 variable {R : Type*} [CommRing R] {m : Ideal R} (hmax : m.IsMaximal)
 open Polynomial PowerSeries
@@ -35,10 +36,32 @@ lemma hom_surjective (n : ℕ) : Function.Surjective (hom m n) := by
   exact Ideal.Quotient.mk_surjective
 
 lemma hom_ker (n : ℕ) : RingHom.ker (hom m n) = (m ^ n).map (Ideal.Quotient.mk (m ^ (n + 1))) := by
-  sorry
+  ext x
+  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+  · rcases Ideal.Quotient.mk_surjective x with ⟨r, hr⟩
+    rw [← hr] at h ⊢
+    simp only [hom, RingHom.mem_ker, Ideal.Quotient.lift_mk, Ideal.Quotient.eq_zero_iff_mem] at h
+    exact Ideal.mem_map_of_mem _ h
+  · rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective h with ⟨r, hr, eq⟩
+    simpa only [hom, ← eq, RingHom.mem_ker, Ideal.Quotient.lift_mk, Ideal.Quotient.eq_zero_iff_mem] using hr
+
+lemma hom_preimage {n : ℕ} (npos : n > 0) : m.map (Ideal.Quotient.mk (m ^ (n + 1))) = (hom m n)⁻¹' (m.map (Ideal.Quotient.mk (m ^ n))) := by
+  ext x
+  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+  · rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective h with ⟨r, hr, eq⟩
+    simp [hom, ← eq, Submodule.mem_sup_left hr]
+  · rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ n)) Ideal.Quotient.mk_surjective h with ⟨r, hr, eq⟩
+    rw [← hom_commute] at eq
+    have : x - ((Ideal.Quotient.mk (m ^ (n + 1))) r) ∈ (m ^ n).map (Ideal.Quotient.mk (m ^ (n + 1))) := by simp [← hom_ker, ← eq]
+    rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective this with ⟨s, hs, eq'⟩
+    rw [← add_sub_cancel ((Ideal.Quotient.mk (m ^ (n + 1))) r) x, ← eq', ← map_add]
+    apply Ideal.mem_map_of_mem
+    apply Submodule.add_mem _ hr
+    rw [← Nat.sub_add_cancel npos, pow_add, pow_one] at hs
+    exact Ideal.mul_le_left (I := m ^ (n - 1)) hs
 
 variable {m} in
-lemma IsUnit_of_IsUnit_image {n : ℕ} (npos : n > 0){a : R ⧸ m ^ (n + 1)} (h : IsUnit ((hom m n) a)) : IsUnit a := by
+lemma IsUnit_of_IsUnit_image {n : ℕ} (npos : n > 0) {a : R ⧸ m ^ (n + 1)} (h : IsUnit ((hom m n) a)) : IsUnit a := by
   rcases isUnit_iff_exists.mp h with ⟨b, hb, _⟩
   rcases hom_surjective m n b with ⟨b', hb'⟩
   rw [← hb', ← map_one (hom m n), ← map_mul] at hb
@@ -75,11 +98,16 @@ lemma ntriv_deg_spec {f : PowerSeries (R ⧸ m ^ n)} (ntriv : ∃ (k : ℕ), (Po
     (PowerSeries.coeff _ (ntriv_deg ntriv)) f ∉ m.map (Ideal.Quotient.mk (m ^ n)) ∧ ∀ i < (ntriv_deg ntriv), (PowerSeries.coeff _ i) f ∈ m.map (Ideal.Quotient.mk (m ^ n)) :=
   sorry
 -/
-set_option linter.unusedTactic false
 
-lemma map_ntriv {n : ℕ} {f : PowerSeries (R ⧸ m ^ (n + 1))} (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ (n + 1)))) :
+lemma map_ntriv {n : ℕ} (npos : n > 0) {f : PowerSeries (R ⧸ m ^ (n + 1))} (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ (n + 1)))) :
     ∃ k, (PowerSeries.coeff (R ⧸ m ^ n) k) (PowerSeries.map (hom m n) f) ∉ Ideal.map (Ideal.Quotient.mk (m ^ n)) m := by
-  sorry
+  rcases ntriv with ⟨k, hk⟩
+  use k
+  by_contra h
+  absurd hk
+  show _ ∈ (_ : Set _)
+  rw [hom_preimage m npos]
+  exact h
 
 lemma hh (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m ^ n))
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ n))) :
@@ -89,7 +117,11 @@ lemma hh (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m
     · absurd npos
       exact Nat.not_lt_zero 0
     · by_cases neq0 : n = 0
-      · use Polynomial.X ^ f.order.get (order_finite_iff_ne_zero.mpr (ne0 ntriv))
+      · have {x : (R ⧸ m ^ (n + 1))} (hx : x ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1)))): x = 0 := by
+          rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective hx with ⟨r, hr, eq⟩
+          rw [← eq, Ideal.Quotient.eq_zero_iff_mem, neq0, zero_add, pow_one]
+          exact hr
+        use Polynomial.X ^ f.order.get (order_finite_iff_ne_zero.mpr (ne0 ntriv))
         constructor
         · let max' : (m ^ (n + 1)).IsMaximal := by simpa only [neq0, zero_add, pow_one] using hmax
           let hField : Field (R ⧸ m ^ (n + 1)) := Ideal.Quotient.field (m ^ (n + 1))
@@ -99,18 +131,12 @@ lemma hh (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m
           · simp only [degree_pow, degree_X, nsmul_eq_mul, mul_one, Nat.cast_lt,
             Polynomial.coeff_X_pow, Nat.cast_inj]
             constructor
-            · apply PartENat.get_eq_iff_eq_coe.mpr
-              apply order_eq_nat.mpr
-              have {x : (R ⧸ m ^ (n + 1))} (hx : x ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1)))): x = 0 := by
-                rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective hx with ⟨r, hr, eq⟩
-                rw [← eq, Ideal.Quotient.eq_zero_iff_mem, neq0, zero_add, pow_one]
-                exact hr
+            · apply PartENat.get_eq_iff_eq_coe.mpr (order_eq_nat.mpr _)
               constructor
               · by_contra h
                 absurd Nat.find_spec ntriv
                 simp only [h, Submodule.zero_mem]
-              · intro i hi
-                exact this <| Decidable.not_not.mp (Nat.find_min ntriv hi)
+              · exact fun i hi ↦ this <| Decidable.not_not.mp (Nat.find_min ntriv hi)
             · constructor
               · intro a ha
                 convert (Submodule.zero_mem (Ideal.map (Ideal.Quotient.mk (m ^ (n + 1))) m))
@@ -122,10 +148,8 @@ lemma hh (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m
 
           --Uniqueness
           sorry
-      · rcases ih (Nat.zero_lt_of_ne_zero neq0) (PowerSeries.map (hom m n) f) (map_ntriv ntriv) with ⟨g, ⟨h, mon, deg, hg, eq⟩, uniq⟩
+      · rcases ih (Nat.zero_lt_of_ne_zero neq0) (PowerSeries.map (hom m n) f) (map_ntriv (Nat.zero_lt_of_ne_zero neq0) ntriv) with ⟨g, ⟨h, mon, deg, hg, eq⟩, uniq⟩
         --take arbitrary lift of `f g h`, get `f' - g' * h'` coeffs in `m ^ n`,
-        --split `h'.inv * (f' - g' * h')` at power `Nat.find ntriv`
-        --add the lower part onto `g'` and add the higher part multiplicated by `h'` onto `h'`
         rcases Polynomial.map_surjective (hom m n) (hom_surjective m n) g with ⟨g', hg'⟩
         rcases PowerSeries.map_surjective (hom m n) (hom_surjective m n) h.val with ⟨h', hh'⟩
         have : IsUnit h' := by
@@ -139,8 +163,10 @@ lemma hh (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m
         have : (Polynomial.map (hom m n) g') = (PowerSeries.map (hom m n) g') := by
           ext
           simp
-
-
+        rw [← hg', ← hh', this, ← map_mul, ← val] at eq
+        have : (PowerSeries.map (hom m n)) (f - g' * h'') = 0 := by rw [map_sub, sub_eq_zero_of_eq eq]
+        --split `h'.inv * (f' - g' * h')` at power `Nat.find ntriv`
+        --add the lower part onto `g'` and add the higher part multiplicated by `h'` onto `h'`
         sorry
 
 section

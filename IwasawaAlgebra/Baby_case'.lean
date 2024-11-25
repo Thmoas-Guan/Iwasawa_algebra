@@ -28,7 +28,7 @@ lemma lowerpart_deg_lt {R : Type u} [Semiring R] (f : R⟦X⟧) (n : ℕ) : (Pow
   simp only [lowerpart, ne_eq, Set.coe_setOf, Set.mem_setOf_eq, coeff_ofFinsupp, Finsupp.coe_mk]
   exact if_neg (Nat.not_lt.mpr hm)
 
-lemma exist_special_lift {R : Type u} {S : Type v} [Ring R] [Ring S] (hom : R →+* S) (hhom : Function.Surjective ⇑hom) (f : S[X]) (mon : Monic f) : ∃ g : R[X], g.map hom = f ∧ Monic g ∧ g.degree = f.degree := by
+lemma exist_special_lift {R : Type u} {S : Type v} [Ring R] [Ring S] {hom : R →+* S} (surj : Function.Surjective ⇑hom) {f : S[X]} (mon : Monic f) : ∃ g : R[X], g.map hom = f ∧ Monic g ∧ g.degree = f.degree := by
   sorry
 
 variable {R : Type*} [CommRing R] {m : Ideal R} (hmax : m.IsMaximal)
@@ -182,79 +182,89 @@ lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
     · by_cases neq0 : n = 0
       · exact preparation_lift_triv neq0 f ntriv
       · rcases ih (Nat.zero_lt_of_ne_zero neq0) (PowerSeries.map (hom m n) f) (map_ntriv (Nat.zero_lt_of_ne_zero neq0) ntriv) with ⟨g, ⟨h, mon, deg, hg, eq⟩, uniq⟩
-        --take arbitrary lift of `f g h`, get `f' - g' * h'` coeffs in `m ^ n`,
-        rcases PowerSeries.map_surjective (hom m n) (hom_surjective m n) h.val with ⟨h', hh'⟩
-        have : IsUnit h' := by
+        have findeq : Nat.find (map_ntriv (Nat.zero_lt_of_ne_zero neq0) ntriv) = Nat.find ntriv := by
+          sorry
+        rw [findeq] at deg
+        rcases PowerSeries.map_surjective (hom m n) (hom_surjective m n) h.val with ⟨h'', hh''⟩
+        have : IsUnit h'' := by
           apply PowerSeries.isUnit_iff_constantCoeff.mpr
           have := PowerSeries.isUnit_iff_constantCoeff.mp (Units.isUnit h)
-          rw [← hh', ← PowerSeries.coeff_zero_eq_constantCoeff_apply] at this
+          rw [← hh'', ← PowerSeries.coeff_zero_eq_constantCoeff_apply] at this
           simp only [PowerSeries.coeff_map, coeff_zero_eq_constantCoeff] at this
           exact IsUnit_of_IsUnit_image (Nat.zero_lt_of_ne_zero neq0) this
-        let h'' : (R ⧸ m ^ (n + 1))⟦X⟧ˣ := IsUnit.unit this
-        have val : h''.1 = h' := rfl
-
-        /-
+        let h' : (R ⧸ m ^ (n + 1))⟦X⟧ˣ := IsUnit.unit this
+        have val : h'.1 = h'' := rfl
+        rcases exist_special_lift (hom_surjective m n) mon with ⟨g', hg', mon', deg'⟩
+        rw [deg] at deg'
         have : (Polynomial.map (hom m n) g') = (PowerSeries.map (hom m n) g') := by
           ext
           simp
-        rw [← hg', ← hh', this, ← map_mul, ← val] at eq
-        have : (PowerSeries.map (hom m n)) (f - g' * h'') = 0 := by rw [map_sub, sub_eq_zero_of_eq eq]
-        --split `h'.inv * (f' - g' * h')` at power `Nat.find ntriv`
-        --add the lower part onto `g'` and add the higher part multiplicated by `h'` onto `h'`
-        set c : (R ⧸ m ^ (n + 1))⟦X⟧ := h''.inv * (f - g' * h'')
+        rw [← hg', ← hh'', this, ← map_mul, ← val] at eq
+        have : (PowerSeries.map (hom m n)) (f - g' * h') = 0 := by rw [map_sub, sub_eq_zero_of_eq eq]
+        set c : (R ⧸ m ^ (n + 1))⟦X⟧ := h'.inv * (f - g' * h')
         have map0 : (PowerSeries.map (hom m n)) c = 0 := by rw [map_mul, this, mul_zero]
         let α := PowerSeries.lowerpart c (Nat.find ntriv)
         let γ := (PowerSeries.mk fun i ↦ PowerSeries.coeff (R ⧸ m ^ (n + 1)) (i + (Nat.find ntriv)) c)
-        let β := (h'' * γ)
+        let β := (h' * γ)
         have hu1 : IsUnit (1 + γ) := by
           apply PowerSeries.isUnit_iff_constantCoeff.mpr
           apply IsUnit_of_IsUnit_image (Nat.zero_lt_of_ne_zero neq0)
           convert isUnit_one
           simp [γ, ← PowerSeries.coeff_map, map0]
-        have hu2 : IsUnit (h''.1 * (1 + γ)) := IsUnit.mul (Units.isUnit h'') hu1
+        have hu2 : IsUnit (h'.1 * (1 + γ)) := IsUnit.mul (Units.isUnit h') hu1
         have heq : (α : (R ⧸ m ^ (n + 1))⟦X⟧) + ((PowerSeries.X) ^ (Nat.find ntriv)) * γ = c := by
           ext k
           simp only [lowerpart, ne_eq, Set.coe_setOf, Set.mem_setOf_eq, map_add, Polynomial.coeff_coe, coeff_ofFinsupp, Finsupp.coe_mk, α, PowerSeries.coeff_X_pow_mul', coeff_mk, γ]
           by_cases lt : k < Nat.find ntriv
           · rw [if_pos lt, if_neg (Nat.not_le_of_lt lt), add_zero]
           · rw [if_neg lt, if_pos (Nat.le_of_not_lt lt), zero_add, Nat.sub_add_cancel (Nat.le_of_not_lt lt)]
-        have deg'' : g'.degree = Nat.find ntriv := by
-          --Polynomial.degree_map_eq_of_leadingCoeff_ne_zero
-          sorry
-        have deg' : (g' + α).degree = Nat.find ntriv := by
-          rw [← deg'']
+        have deg'' : (g' + α).degree = Nat.find ntriv := by
+          rw [← deg']
           apply Polynomial.degree_add_eq_left_of_degree_lt
-          rw [deg'']
-          sorry
-        have : ∀ i : ℕ, i < (g' + α).degree → (g' + α).coeff i ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1))) := by
-          sorry
+          rw [deg']
+          apply lowerpart_deg_lt c (Nat.find ntriv)
+        have αcoeff (l : ℕ) : (hom m n) (α.coeff l) = 0 := by
+            simp only [lowerpart, Set.coe_setOf, Set.mem_setOf_eq, coeff_ofFinsupp, Finsupp.coe_mk, α]
+            by_cases lt : l < Nat.find ntriv
+            · rw [if_pos lt, ← PowerSeries.coeff_map, map0]
+              rfl
+            · rw [if_neg lt, map_zero]
+        have hgα : ∀ i : ℕ, i < (g' + α).degree → (g' + α).coeff i ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1))) := by
+          intro i hi
+          show _ ∈ (_ : Set _)
+          simp only [hom_preimage m (Nat.zero_lt_of_ne_zero neq0), coeff_add, Set.mem_preimage,
+            map_add, αcoeff, add_zero, SetLike.mem_coe]
+          rw [← (Polynomial.coeff_map (hom m n) i), hg']
+          apply hg
+          rw [deg, ← deg'']
+          exact hi
+        have (l : ℕ): (PowerSeries.coeff (R ⧸ m ^ (n + 1)) l) (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - PowerSeries.X ^ Nat.find ntriv) ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1))) := by
+          simp only [map_sub, map_add, Polynomial.coeff_coe]
+          show _ ∈ (_ : Set _)
+          simp only [hom_preimage m (Nat.zero_lt_of_ne_zero neq0), PowerSeries.coeff_X_pow,
+            Set.mem_preimage, map_sub, map_add, αcoeff, add_zero, RingHom.map_ite_one_zero,
+            SetLike.mem_coe, ← (Polynomial.coeff_map (hom m n) l), hg']
+          by_cases leq : l = Nat.find ntriv
+          · simp [leq, ← natDegree_eq_of_degree_eq_some deg, Polynomial.Monic.def.mp mon]
+          · simp only [leq, ↓reduceIte, sub_zero]
+            rcases lt_or_gt_of_ne leq with lt|gt
+            · apply hg
+              rw [deg]
+              exact Nat.cast_lt.mpr lt
+            · convert Submodule.zero_mem (Ideal.map (Ideal.Quotient.mk (m ^ n)) m)
+              apply Polynomial.coeff_eq_zero_of_degree_lt
+              rw [deg]
+              exact Nat.cast_lt.mpr gt
+
+        /-
         have : (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - ((PowerSeries.X) ^ (Nat.find ntriv))) * γ = 0 := by
           ext
           simp only [PowerSeries.coeff_mul, map_zero]
           apply Finset.sum_eq_zero fun x hx => ?_
-          have : (PowerSeries.coeff (R ⧸ m ^ (n + 1)) x.1) (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - PowerSeries.X ^ Nat.find ntriv) ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1))) := by
-            simp only [map_sub, map_add, Polynomial.coeff_coe]
-            have : (hom m n) (α.coeff x.1) = 0 := by
-              simp only [lowerpart, Set.coe_setOf, Set.mem_setOf_eq, coeff_ofFinsupp, Finsupp.coe_mk, α]
-              by_cases lt : x.1 < Nat.find ntriv
-              · rw [if_pos lt, ← PowerSeries.coeff_map, map0]
-                rfl
-              · rw [if_neg lt, map_zero]
-            have : (α.coeff x.1) ∈ (Ideal.map (Ideal.Quotient.mk (m ^ (n + 1))) m : Set _) := by
-              rw [hom_preimage m (Nat.zero_lt_of_ne_zero neq0)]
-              simp [this]
-            have : (g'.coeff x.1 - (PowerSeries.coeff (R ⧸ m ^ (n + 1)) x.1) (PowerSeries.X ^ Nat.find ntriv)) ∈
-              Ideal.map (Ideal.Quotient.mk (m ^ (n + 1))) m := by
-
-              sorry
-            rw [add_comm (g'.coeff x.1) (α.coeff x.1), add_sub_assoc]
-            --hom_preimage m (Nat.zero_lt_of_ne_zero neq0)
-
-            sorry
           sorry
-        have : (g' + α) * (h''.1 * (1 + γ)) = f := by
+        have : (g' + α) * (h'.1 * (1 + γ)) = f := by
           calc
-           _ = (g' : (R ⧸ m ^ (n + 1))⟦X⟧) * h''.1 + h''.1 * ((α : (R ⧸ m ^ (n + 1))⟦X⟧) + ((PowerSeries.X) ^ (Nat.find ntriv)) * γ) + (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - ((PowerSeries.X) ^ (Nat.find ntriv))) * γ * h''.1 := by ring
+           _ = (g' : (R ⧸ m ^ (n + 1))⟦X⟧) * h'.1 + h'.1 * ((α : (R ⧸ m ^ (n + 1))⟦X⟧) + ((PowerSeries.X) ^ (Nat.find ntriv)) * γ) + (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - ((PowerSeries.X) ^ (Nat.find ntriv))) * γ * h'.1 := by ring
            _ = f := by simp [this, heq, c]
         -/
         sorry

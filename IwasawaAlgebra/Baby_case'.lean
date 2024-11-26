@@ -169,6 +169,10 @@ lemma map_ntriv {n : ℕ} (npos : n > 0) {f : PowerSeries (R ⧸ m ^ (n + 1))} (
   rw [hom_preimage m npos]
   exact h
 
+lemma map_ntriv_findeq {n : ℕ} (npos : n > 0) {f : PowerSeries (R ⧸ m ^ (n + 1))} (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ (n + 1)))) :
+    Nat.find (map_ntriv npos ntriv) = Nat.find ntriv := by
+  sorry
+
 lemma preparation_lift_triv {n : ℕ} (neq0 : n = 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m ^ (n + 1)))
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ (n + 1)))) :
     ∃! (h : (R ⧸ m ^ (n + 1))⟦X⟧ˣ), ∃ (g : Polynomial (R ⧸ m ^ (n + 1))), Monic g ∧ g.degree = Nat.find ntriv ∧
@@ -235,8 +239,7 @@ lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
     · by_cases neq0 : n = 0
       · exact preparation_lift_triv neq0 f ntriv
       · rcases ih (Nat.zero_lt_of_ne_zero neq0) (PowerSeries.map (hom m n) f) (map_ntriv (Nat.zero_lt_of_ne_zero neq0) ntriv) with ⟨h, ⟨g, mon, deg, hg, eq⟩, uniq⟩
-        have findeq : Nat.find (map_ntriv (Nat.zero_lt_of_ne_zero neq0) ntriv) = Nat.find ntriv := by
-          sorry
+        have findeq := map_ntriv_findeq (Nat.zero_lt_of_ne_zero neq0) ntriv
         rw [findeq] at deg
         rcases PowerSeries.map_surjective (hom m n) (hom_surjective m n) h.val with ⟨h'', hh''⟩
         have : IsUnit h'' := by

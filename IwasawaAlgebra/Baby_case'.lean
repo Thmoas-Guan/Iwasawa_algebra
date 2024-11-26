@@ -28,8 +28,49 @@ lemma lowerpart_deg_lt {R : Type u} [Semiring R] (f : R⟦X⟧) (n : ℕ) : (Pow
   simp only [lowerpart, ne_eq, Set.coe_setOf, Set.mem_setOf_eq, coeff_ofFinsupp, Finsupp.coe_mk]
   exact if_neg (Nat.not_lt.mpr hm)
 
-lemma exist_special_lift {R : Type u} {S : Type v} [Ring R] [Ring S] {hom : R →+* S} (surj : Function.Surjective ⇑hom) {f : S[X]} (mon : Monic f) : ∃ g : R[X], g.map hom = f ∧ Monic g ∧ g.degree = f.degree := by
-  sorry
+lemma exist_special_lift {R : Type u} {S : Type v} [Ring R] [Ring S] [Nontrivial R] [Nontrivial S] {hom : R →+* S} (surj : Function.Surjective ⇑hom) {f : S[X]} (mon : Monic f) : ∃ g : R[X], g.map hom = f ∧ Monic g ∧ g.degree = f.degree := by
+  have fne0 : f ≠ 0 := Monic.ne_zero_of_ne (zero_ne_one' S) mon
+  let tofun : ℕ → R := fun i ↦ if i = f.natDegree then 1 else if i > f.natDegree then 0 else Classical.choose (surj (f.coeff i))
+  have lt {i : ℕ} : tofun i ≠ 0 → i < f.natDegree + 1 := fun hi ↦ by
+    by_contra gt
+    have gt : f.natDegree <i := Nat.lt_of_succ_le (Nat.le_of_not_lt gt)
+    simp only [Nat.ne_of_lt' gt, ↓reduceIte, gt, ne_eq, not_true_eq_false, tofun] at hi
+  let g : R[X] := {
+    toFinsupp := {
+      support :=
+        have : Fintype {i | tofun i ≠ 0} :=
+          Fintype.ofInjective (fun i ↦ (⟨i.1, lt i.2⟩ : Fin (f.natDegree + 1))) (fun i j  hij ↦ Subtype.val_inj.mp <| Fin.mk.inj_iff.mp hij)
+        Set.toFinset {i | tofun i ≠ 0}
+      toFun := tofun
+      mem_support_toFun := by simp
+    }}
+  use g
+  constructor
+  · apply Polynomial.ext
+    intro i
+    simp only [gt_iff_lt, ne_eq, Set.coe_setOf, Set.mem_setOf_eq, Polynomial.coeff_map,
+      coeff_ofFinsupp, Finsupp.coe_mk, g, tofun]
+    by_cases ne : i = f.natDegree
+    · simp only [ne, ↓reduceIte, map_one, coeff_natDegree, ← Monic.leadingCoeff mon]
+    · rcases lt_or_gt_of_ne ne with lt|gt
+      · simp [ne, Nat.not_lt_of_gt lt, Classical.choose_spec (surj (f.coeff i))]
+      · simp [ne, gt, ← (coeff_eq_zero_of_natDegree_lt gt)]
+  · have gne0 : g ≠ 0 := by
+      have : g.coeff f.natDegree ≠ 0 := by simp [g, tofun]
+      by_contra h
+      simp [h] at this
+    have degeq : g.natDegree = f.natDegree := by
+      apply Polynomial.natDegree_eq_of_le_of_coeff_ne_zero
+      · apply natDegree_le_iff_degree_le.mpr
+        apply (Polynomial.degree_le_iff_coeff_zero g f.natDegree).mpr
+        intro m hm
+        have lt : f.natDegree < m := WithBot.coe_lt_coe.mp hm
+        simp [g, tofun, (Nat.ne_of_lt (lt)).symm, lt]
+      · simp [g, tofun]
+    constructor
+    · show g.coeff g.natDegree = 1
+      simp [degeq, g, tofun]
+    · rw [degree_eq_natDegree fne0, degree_eq_natDegree gne0, degeq]
 
 variable {R : Type*} [CommRing R] {m : Ideal R} (hmax : m.IsMaximal)
 
@@ -130,7 +171,7 @@ lemma map_ntriv {n : ℕ} (npos : n > 0) {f : PowerSeries (R ⧸ m ^ (n + 1))} (
 
 lemma preparation_lift_triv {n : ℕ} (neq0 : n = 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m ^ (n + 1)))
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ (n + 1)))) :
-    ∃! (g : Polynomial (R ⧸ m ^ (n + 1))), ∃ (h : (R ⧸ m ^ (n + 1))⟦X⟧ˣ), Monic g ∧ g.degree = Nat.find ntriv ∧
+    ∃! (h : (R ⧸ m ^ (n + 1))⟦X⟧ˣ), ∃ (g : Polynomial (R ⧸ m ^ (n + 1))), Monic g ∧ g.degree = Nat.find ntriv ∧
     (∀ i : ℕ, i < degree g → coeff g i ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1)))) ∧ f = g * h := by
   have {x : (R ⧸ m ^ (n + 1))} (hx : x ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1)))): x = 0 := by
     rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective hx with ⟨r, hr, eq⟩
@@ -143,11 +184,15 @@ lemma preparation_lift_triv {n : ℕ} (neq0 : n = 0) [hmax : m.IsMaximal] (f : P
       absurd Nat.find_spec ntriv
       simp only [h, Submodule.zero_mem]
     · exact fun i hi ↦ this <| Decidable.not_not.mp (Nat.find_min ntriv hi)
-  use Polynomial.X ^ Nat.find ntriv
+  let max' : (m ^ (n + 1)).IsMaximal := by simpa only [neq0, zero_add, pow_one] using hmax
+  let hField : Field (R ⧸ m ^ (n + 1)) := Ideal.Quotient.field (m ^ (n + 1))
+  have muleq : f = ((Polynomial.X (R := (R ⧸ m ^ (n + 1))) ^ (Nat.find ntriv)) : (R ⧸ m ^ (n + 1))[X]) * ↑f.Unit_of_divided_by_X_pow_order := by
+    rw [PowerSeries.Unit_of_divided_by_X_pow_order_nonzero (ne0 ntriv)]
+    convert (PowerSeries.self_eq_X_pow_order_mul_divided_by_X_pow_order (ne0 ntriv)).symm
+    simp only [Polynomial.coe_pow, Polynomial.coe_X, eqfind]
+  use PowerSeries.Unit_of_divided_by_X_pow_order f
   constructor
-  · let max' : (m ^ (n + 1)).IsMaximal := by simpa only [neq0, zero_add, pow_one] using hmax
-    let hField : Field (R ⧸ m ^ (n + 1)) := Ideal.Quotient.field (m ^ (n + 1))
-    use PowerSeries.Unit_of_divided_by_X_pow_order f
+  · use Polynomial.X ^ Nat.find ntriv
     constructor
     · apply monic_X_pow
     · simp only [degree_pow, degree_X, nsmul_eq_mul, mul_one, Nat.cast_lt,
@@ -156,32 +201,40 @@ lemma preparation_lift_triv {n : ℕ} (neq0 : n = 0) [hmax : m.IsMaximal] (f : P
       · intro a ha
         convert (Submodule.zero_mem (Ideal.map (Ideal.Quotient.mk (m ^ (n + 1))) m))
         simp [Nat.ne_of_lt ha]
-      · rw [PowerSeries.Unit_of_divided_by_X_pow_order_nonzero (ne0 ntriv)]
-        convert (PowerSeries.self_eq_X_pow_order_mul_divided_by_X_pow_order (ne0 ntriv)).symm
-        simp only [Polynomial.coe_pow, Polynomial.coe_X, eqfind]
-  · rintro g' ⟨h, mon, deg, hg', _⟩
-    apply Polynomial.ext
-    intro i
-    simp only [Polynomial.coeff_X_pow]
-    by_cases H' : i = Nat.find ntriv
-    · rw [if_pos H', H', ← (natDegree_eq_of_degree_eq_some deg), Polynomial.Monic.coeff_natDegree mon]
-    · rcases Nat.lt_or_gt_of_ne H' with gt|lt
-      · rw [if_neg (Nat.ne_of_lt gt)]
-        exact this ((hg' i) (deg ▸ Nat.cast_lt.mpr gt))
-      · rw [if_neg (Nat.ne_of_gt lt)]
-        apply Polynomial.coeff_eq_zero_of_degree_lt
-        exact deg ▸ (Nat.cast_lt.mpr lt)
+      · exact muleq
+  · rintro h' ⟨g', mon, deg, hg', eq⟩
+    have : g' = Polynomial.X ^ Nat.find ntriv := by
+      apply Polynomial.ext
+      intro i
+      simp only [Polynomial.coeff_X_pow]
+      by_cases H' : i = Nat.find ntriv
+      · rw [if_pos H', H', ← (natDegree_eq_of_degree_eq_some deg), Polynomial.Monic.coeff_natDegree mon]
+      · rcases Nat.lt_or_gt_of_ne H' with gt|lt
+        · rw [if_neg (Nat.ne_of_lt gt)]
+          exact this ((hg' i) (deg ▸ Nat.cast_lt.mpr gt))
+        · rw [if_neg (Nat.ne_of_gt lt)]
+          apply Polynomial.coeff_eq_zero_of_degree_lt
+          exact deg ▸ (Nat.cast_lt.mpr lt)
+    rw [muleq, this] at eq
+    apply Units.eq_iff.mp ((mul_right_inj' _).mp eq.symm)
+    simp
+
 
 lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m ^ n))
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ n))) :
-    ∃! (g : Polynomial (R ⧸ m ^ n)), ∃ (h : (R ⧸ m ^ n)⟦X⟧ˣ), Monic g ∧ g.degree = Nat.find ntriv ∧
+    ∃! (h : (R ⧸ m ^ n)⟦X⟧ˣ), ∃ (g : Polynomial (R ⧸ m ^ n)), Monic g ∧ g.degree = Nat.find ntriv ∧
     (∀ i : ℕ, i < degree g → coeff g i ∈ m.map (Ideal.Quotient.mk (m ^ n))) ∧ f = g * h := by
+    let nontriv_all {k : ℕ} (pos : k > 0): Nontrivial (R ⧸ m ^ k) := Submodule.Quotient.nontrivial_of_lt_top (m ^ k) (by
+      have : m ^ k ≤ m:= by
+        rw [← Nat.sub_add_cancel pos, pow_add, pow_one]
+        apply Ideal.mul_le_left
+      exact lt_of_le_of_lt this (Ne.lt_top (Ideal.IsMaximal.ne_top hmax)) )
     induction' n with n ih
     · absurd npos
       exact Nat.not_lt_zero 0
     · by_cases neq0 : n = 0
       · exact preparation_lift_triv neq0 f ntriv
-      · rcases ih (Nat.zero_lt_of_ne_zero neq0) (PowerSeries.map (hom m n) f) (map_ntriv (Nat.zero_lt_of_ne_zero neq0) ntriv) with ⟨g, ⟨h, mon, deg, hg, eq⟩, uniq⟩
+      · rcases ih (Nat.zero_lt_of_ne_zero neq0) (PowerSeries.map (hom m n) f) (map_ntriv (Nat.zero_lt_of_ne_zero neq0) ntriv) with ⟨h, ⟨g, mon, deg, hg, eq⟩, uniq⟩
         have findeq : Nat.find (map_ntriv (Nat.zero_lt_of_ne_zero neq0) ntriv) = Nat.find ntriv := by
           sorry
         rw [findeq] at deg
@@ -194,6 +247,8 @@ lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
           exact IsUnit_of_IsUnit_image (Nat.zero_lt_of_ne_zero neq0) this
         let h' : (R ⧸ m ^ (n + 1))⟦X⟧ˣ := IsUnit.unit this
         have val : h'.1 = h'' := rfl
+        let nontriv : Nontrivial (R ⧸ m ^ n) := nontriv_all (Nat.zero_lt_of_ne_zero neq0)
+        let nontriv' : Nontrivial (R ⧸ m ^ (n + 1)) := nontriv_all npos
         rcases exist_special_lift (hom_surjective m n) mon with ⟨g', hg', mon', deg'⟩
         rw [deg] at deg'
         have : (Polynomial.map (hom m n) g') = (PowerSeries.map (hom m n) g') := by
@@ -205,7 +260,6 @@ lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
         have map0 : (PowerSeries.map (hom m n)) c = 0 := by rw [map_mul, this, mul_zero]
         let α := PowerSeries.lowerpart c (Nat.find ntriv)
         let γ := (PowerSeries.mk fun i ↦ PowerSeries.coeff (R ⧸ m ^ (n + 1)) (i + (Nat.find ntriv)) c)
-        let β := (h' * γ)
         have hu1 : IsUnit (1 + γ) := by
           apply PowerSeries.isUnit_iff_constantCoeff.mpr
           apply IsUnit_of_IsUnit_image (Nat.zero_lt_of_ne_zero neq0)
@@ -218,11 +272,10 @@ lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
           by_cases lt : k < Nat.find ntriv
           · rw [if_pos lt, if_neg (Nat.not_le_of_lt lt), add_zero]
           · rw [if_neg lt, if_pos (Nat.le_of_not_lt lt), zero_add, Nat.sub_add_cancel (Nat.le_of_not_lt lt)]
-        have deg'' : (g' + α).degree = Nat.find ntriv := by
-          rw [← deg']
-          apply Polynomial.degree_add_eq_left_of_degree_lt
-          rw [deg']
-          apply lowerpart_deg_lt c (Nat.find ntriv)
+        have deg'' : (g' + α).degree = Nat.find ntriv :=
+          deg' ▸ Polynomial.degree_add_eq_left_of_degree_lt (deg' ▸ lowerpart_deg_lt c (Nat.find ntriv))
+        have mon'' : Monic (g' + α) :=
+          Polynomial.Monic.add_of_left mon' (deg' ▸ lowerpart_deg_lt c (Nat.find ntriv))
         have αcoeff (l : ℕ) : (hom m n) (α.coeff l) = 0 := by
             simp only [lowerpart, Set.coe_setOf, Set.mem_setOf_eq, coeff_ofFinsupp, Finsupp.coe_mk, α]
             by_cases lt : l < Nat.find ntriv
@@ -238,7 +291,7 @@ lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
           apply hg
           rw [deg, ← deg'']
           exact hi
-        have (l : ℕ): (PowerSeries.coeff (R ⧸ m ^ (n + 1)) l) (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - PowerSeries.X ^ Nat.find ntriv) ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1))) := by
+        have hcoeff (l : ℕ): (PowerSeries.coeff (R ⧸ m ^ (n + 1)) l) (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - PowerSeries.X ^ Nat.find ntriv) ∈ m.map (Ideal.Quotient.mk (m ^ (n + 1))) := by
           simp only [map_sub, map_add, Polynomial.coeff_coe]
           show _ ∈ (_ : Set _)
           simp only [hom_preimage m (Nat.zero_lt_of_ne_zero neq0), PowerSeries.coeff_X_pow,
@@ -255,19 +308,52 @@ lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
               apply Polynomial.coeff_eq_zero_of_degree_lt
               rw [deg]
               exact Nat.cast_lt.mpr gt
-
-        /-
-        have : (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - ((PowerSeries.X) ^ (Nat.find ntriv))) * γ = 0 := by
+        have mul0 : (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - ((PowerSeries.X) ^ (Nat.find ntriv))) * γ = 0 := by
           ext
           simp only [PowerSeries.coeff_mul, map_zero]
           apply Finset.sum_eq_zero fun x hx => ?_
-          sorry
-        have : (g' + α) * (h'.1 * (1 + γ)) = f := by
+          rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective (hcoeff x.1) with ⟨r, hr, eqr⟩
+          have : (PowerSeries.coeff (R ⧸ m ^ (n + 1)) x.2) γ ∈ (m ^ n).map (Ideal.Quotient.mk (m ^ (n + 1))) := by
+            simp [← hom_ker, RingHom.mem_ker, γ, ← PowerSeries.coeff_map, map0]
+          rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective this with ⟨s, hs, eqs⟩
+          rw [← eqr, ← eqs, ← map_mul, Ideal.Quotient.eq_zero_iff_mem, add_comm, pow_add, pow_one]
+          exact Submodule.mul_mem_mul hr hs
+        have muleq : (g' + α) * (h'.1 * (1 + γ)) = f := by
           calc
-           _ = (g' : (R ⧸ m ^ (n + 1))⟦X⟧) * h'.1 + h'.1 * ((α : (R ⧸ m ^ (n + 1))⟦X⟧) + ((PowerSeries.X) ^ (Nat.find ntriv)) * γ) + (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - ((PowerSeries.X) ^ (Nat.find ntriv))) * γ * h'.1 := by ring
-           _ = f := by simp [this, heq, c]
-        -/
-        sorry
+          _ = (g' : (R ⧸ m ^ (n + 1))⟦X⟧) * h'.1 + h'.1 * ((α : (R ⧸ m ^ (n + 1))⟦X⟧) + ((PowerSeries.X) ^ (Nat.find ntriv)) * γ) + (((g' + α)  : (R ⧸ m ^ (n + 1))⟦X⟧) - ((PowerSeries.X) ^ (Nat.find ntriv))) * γ * h'.1 := by ring
+          _ = f := by simp [mul0, heq, c]
+        use hu2.unit
+        constructor
+        · use (g' + α)
+          exact ⟨mon'', deg'', hgα, by simp [muleq]⟩
+        · rintro H ⟨G, monG, degG, hG, muleq'⟩
+          have Hu: IsUnit (PowerSeries.map (hom m n) H) := by
+            apply RingHom.isUnit_map
+            exact Units.isUnit H
+          have : Hu.unit = h := by
+            apply uniq
+            use Polynomial.map (hom m n) G
+            constructor
+            · apply Polynomial.Monic.map _ monG
+            · have : (Polynomial.map (hom m n) G).degree = Nat.find ntriv := by
+                rw [← degG]
+                apply Polynomial.degree_map_eq_iff.mpr
+                simp [monG]
+              constructor
+              · rw [this, findeq]
+              · constructor
+                · intro i hi
+                  simp only [Polynomial.coeff_map]
+                  show G.coeff i ∈ (hom m n)⁻¹' (m.map (Ideal.Quotient.mk (m ^ n)))
+                  rw [← hom_preimage m (Nat.zero_lt_of_ne_zero neq0)]
+                  apply hG
+                  rw [degG, ← this]
+                  exact hi
+                · have : (Polynomial.map (hom m n) G) = (PowerSeries.map (hom m n) G) := by
+                    ext
+                    simp
+                  simp [muleq', this]
+          sorry
 
 section
 

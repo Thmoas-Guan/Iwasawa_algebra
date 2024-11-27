@@ -428,10 +428,20 @@ lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
 
 section
 
+#check IsPrecomplete m R
+
+theorem Wierstrass_preparation [hmax : m.IsMaximal] [IsAdicComplete m R] (f : PowerSeries R)
+    (ntriv : ∃ (k : ℕ), (PowerSeries.coeff R k) f ∉ m) : ∃! (h : R⟦X⟧ˣ), ∃ (g : R[X]), Monic g ∧ g.degree = Nat.find ntriv ∧
+    (∀ i : ℕ, i < degree g → coeff g i ∈ m ∧ f = g * h) := by
+  sorry
+end
+
+section
+
 variable (F : Type*) [Field F] (ι : outParam Type*) [LinearOrderedCommGroupWithZero ι] [vR : Valued F ι]
 open Valued
 
-theorem Wierstrass_preparation (f : PowerSeries 𝒪[F]) (ne : f ≠ 0)
+theorem Wierstrass_preparation' (f : PowerSeries 𝒪[F]) (ne : f ≠ 0)
     (π : 𝒪[F] ) (hyp : Ideal.span {π} = 𝓂[F] ) : ∃ (m : ℕ),
     ∃! (g : Polynomial 𝒪[F] ), ∃ (h : (PowerSeries 𝒪[F])ˣ),
     Monic g ∧ (∀ i : ℕ, i < degree g → (coeff g i) ∈ 𝓂[F]) ∧

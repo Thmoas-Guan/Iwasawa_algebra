@@ -232,7 +232,6 @@ lemma preparation_lift_triv {n : ℕ} (neq0 : n = 0) [hmax : m.IsMaximal] (f : P
     apply Units.eq_iff.mp ((mul_right_inj' _).mp eq.symm)
     simp
 
-
 lemma preparation_lift {n : ℕ} (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m ^ n))
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ n))) :
     ∃! (h : (R ⧸ m ^ n)⟦X⟧ˣ), ∃ (g : Polynomial (R ⧸ m ^ n)), Monic g ∧ g.degree = Nat.find ntriv ∧
@@ -424,7 +423,64 @@ lemma preparation_lift {n : ℕ} (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
 
 section
 
-#check IsPrecomplete m R
+lemma isUnit_iff_nmem [hmax : m.IsMaximal] [comp : IsAdicComplete m R] (r : R) : IsUnit r ↔ r ∉ m := by
+  refine ⟨fun h ↦ ?_, fun h ↦ ?_⟩
+  · by_contra mem
+    rcases IsUnit.exists_left_inv h with ⟨s, hs⟩
+    absurd (Ideal.ne_top_iff_one m).mp (Ideal.IsMaximal.ne_top hmax)
+    simp [← hs, Ideal.mul_mem_left m s mem]
+  · have mapu {n : ℕ} (npos : n > 0) : IsUnit (Ideal.Quotient.mk (m ^ n) r) := by
+      induction' n with n ih
+      · absurd npos
+        exact Nat.not_lt_zero 0
+      · by_cases neq0 : n = 0
+        · let max' : (m ^ (n + 1)).IsMaximal := by simpa only [neq0, zero_add, pow_one] using hmax
+          let hField : Field (R ⧸ m ^ (n + 1)) := Ideal.Quotient.field (m ^ (n + 1))
+          simpa [isUnit_iff_ne_zero, ne_eq, Ideal.Quotient.eq_zero_iff_mem.not, neq0] using h
+        · apply IsUnit_of_IsUnit_image (Nat.zero_lt_of_ne_zero neq0)
+          simpa [hom] using (ih (Nat.zero_lt_of_ne_zero neq0))
+    let inv_series' := fun (n : {n : ℕ // n > 0}) ↦ Classical.choose (IsUnit.exists_left_inv (mapu n.2))
+    have inv_series_spec' (n : {n : ℕ // n > 0}) : (inv_series' n) * (Ideal.Quotient.mk (m ^ n.1) r) = 1 := Classical.choose_spec (IsUnit.exists_left_inv (mapu n.2))
+    let inv_series : ℕ → R := fun n ↦ by
+      by_cases h : n = 0
+      · exact 0
+      · exact Classical.choose <| (Ideal.Quotient.mk_surjective (I := m ^ n)) <| inv_series' ⟨n, (Nat.zero_lt_of_ne_zero h)⟩
+    have inv_series_spec {n : ℕ} (npos : n > 0): (Ideal.Quotient.mk (m ^ n)) (inv_series n) = inv_series' ⟨n, npos⟩ := by
+      simp only [Nat.not_eq_zero_of_lt npos, ↓reduceDIte, inv_series]
+      exact Classical.choose_spec <| (Ideal.Quotient.mk_surjective (I := m ^ n)) <| inv_series' ⟨n, npos⟩
+    let HOM {a b : ℕ} (le : a ≤ b) : R⧸m ^ b →+* R⧸m ^ a :=
+      Ideal.Quotient.lift (m ^ b) (Ideal.Quotient.mk (m ^ a))
+      (fun _ ha ↦ Ideal.Quotient.eq_zero_iff_mem.mpr ((Ideal.pow_le_pow_right le) ha))
+    have HOM_comm {a b : ℕ} (le : a ≤ b) (r : R) : (Ideal.Quotient.mk (m ^ a)) r = (HOM le) ((Ideal.Quotient.mk (m ^ b)) r) := rfl
+    have mod : ∀ {a b : ℕ}, a ≤ b → inv_series a ≡ inv_series b [SMOD m ^ a • (⊤ : Submodule R R)] := by
+      intro a b le
+      by_cases apos : a > 0
+      · have bpos : b > 0 := Nat.lt_of_lt_of_le apos le
+        simp only [smul_eq_mul, Ideal.mul_top]
+        apply SModEq.sub_mem.mpr
+        apply Ideal.Quotient.eq_zero_iff_mem.mp
+        rw [map_sub]
+        apply (IsUnit.mul_right_inj (mapu apos)).mp
+        simp only [mul_zero, mul_sub]
+        nth_rw 3 [HOM_comm le _, HOM_comm le _]
+        simp only [inv_series_spec apos, inv_series_spec bpos, ← map_mul]
+        rw [mul_comm, inv_series_spec', mul_comm, inv_series_spec']
+        simp only [map_one, sub_self]
+      · simp [Nat.eq_zero_of_not_pos apos]
+    rcases IsPrecomplete.prec IsAdicComplete.toIsPrecomplete mod with ⟨inv, hinv⟩
+    have eq (n : ℕ): inv * r - 1 ≡ 0 [SMOD m ^ n • (⊤ : Submodule R R)] := by
+      by_cases npos : n > 0
+      · apply SModEq.sub_mem.mpr
+        simp only [smul_eq_mul, Ideal.mul_top, sub_zero]
+        apply Ideal.Quotient.eq_zero_iff_mem.mp
+        rw [map_sub, map_one, map_mul, ← sub_add_cancel inv (inv_series n), map_add]
+        have := SModEq.sub_mem.mp (hinv n).symm
+        simp only [smul_eq_mul, Ideal.mul_top] at this
+        rw [Ideal.Quotient.eq_zero_iff_mem.mpr this, inv_series_spec npos, zero_add, inv_series_spec', sub_self]
+      · simp [Nat.eq_zero_of_not_pos npos]
+    apply isUnit_iff_exists_inv'.mpr
+    use inv
+    exact sub_eq_zero.mp <| IsHausdorff.haus IsAdicComplete.toIsHausdorff (inv * r - 1) eq
 
 theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R] (f : PowerSeries R)
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff R k) f ∉ m) : ∃! (h : R⟦X⟧ˣ), ∃ (g : R[X]), Monic g ∧ g.degree = Nat.find ntriv ∧

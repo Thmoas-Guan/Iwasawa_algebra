@@ -28,7 +28,7 @@ lemma lowerpart_deg_lt {R : Type u} [Semiring R] (f : R⟦X⟧) (n : ℕ) : (Pow
   simp only [lowerpart, ne_eq, Set.coe_setOf, Set.mem_setOf_eq, coeff_ofFinsupp, Finsupp.coe_mk]
   exact if_neg (Nat.not_lt.mpr hm)
 
-lemma exist_special_lift {R : Type u} {S : Type v} [Ring R] [Ring S] [Nontrivial R] [Nontrivial S] {hom : R →+* S} (surj : Function.Surjective ⇑hom) {f : S[X]} (mon : Monic f) : ∃ g : R[X], g.map hom = f ∧ Monic g ∧ g.degree = f.degree := by
+lemma exist_special_lift {R : Type u} {S : Type v} [Ring R] [Ring S] [Nontrivial R] [Nontrivial S] (hom : R →+* S) (surj : Function.Surjective ⇑hom) {f : S[X]} (mon : Monic f) : ∃ g : R[X], g.map hom = f ∧ Monic g ∧ g.degree = f.degree := by
   have fne0 : f ≠ 0 := Monic.ne_zero_of_ne (zero_ne_one' S) mon
   let tofun : ℕ → R := fun i ↦ if i = f.natDegree then 1 else if i > f.natDegree then 0 else Classical.choose (surj (f.coeff i))
   have lt {i : ℕ} : tofun i ≠ 0 → i < f.natDegree + 1 := fun hi ↦ by
@@ -233,15 +233,11 @@ lemma preparation_lift_triv {n : ℕ} (neq0 : n = 0) [hmax : m.IsMaximal] (f : P
     simp
 
 
-lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m ^ n))
+lemma preparation_lift {n : ℕ} (npos : n > 0) [hmax : m.IsMaximal] (f : PowerSeries (R ⧸ m ^ n))
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m.map (Ideal.Quotient.mk (m ^ n))) :
     ∃! (h : (R ⧸ m ^ n)⟦X⟧ˣ), ∃ (g : Polynomial (R ⧸ m ^ n)), Monic g ∧ g.degree = Nat.find ntriv ∧
     (∀ i : ℕ, i < degree g → coeff g i ∈ m.map (Ideal.Quotient.mk (m ^ n))) ∧ f = g * h := by
-    let nontriv_all {k : ℕ} (pos : k > 0): Nontrivial (R ⧸ m ^ k) := Submodule.Quotient.nontrivial_of_lt_top (m ^ k) (by
-      have : m ^ k ≤ m:= by
-        rw [← Nat.sub_add_cancel pos, pow_add, pow_one]
-        apply Ideal.mul_le_left
-      exact lt_of_le_of_lt this (Ne.lt_top (Ideal.IsMaximal.ne_top hmax)) )
+    let nontriv_all {k : ℕ} (pos : k > 0): Nontrivial (R ⧸ m ^ k) := Submodule.Quotient.nontrivial_of_lt_top (m ^ k) (lt_of_le_of_lt (Ideal.pow_le_self (Nat.not_eq_zero_of_lt pos)) (Ne.lt_top (Ideal.IsMaximal.ne_top hmax)))
     induction' n with n ih
     · absurd npos
       exact Nat.not_lt_zero 0
@@ -261,7 +257,7 @@ lemma preparation_lift (n : ℕ) (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
         have val : h'.1 = h'' := rfl
         let nontriv : Nontrivial (R ⧸ m ^ n) := nontriv_all (Nat.zero_lt_of_ne_zero neq0)
         let nontriv' : Nontrivial (R ⧸ m ^ (n + 1)) := nontriv_all npos
-        rcases exist_special_lift (hom_surjective m n) mon with ⟨g', hg', mon', deg'⟩
+        rcases exist_special_lift (hom m n) (hom_surjective m n) mon with ⟨g', hg', mon', deg'⟩
         rw [deg] at deg'
         have : (Polynomial.map (hom m n) g') = (PowerSeries.map (hom m n) g') := by
           ext
@@ -430,10 +426,48 @@ section
 
 #check IsPrecomplete m R
 
-theorem Wierstrass_preparation [hmax : m.IsMaximal] [IsAdicComplete m R] (f : PowerSeries R)
+theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R] (f : PowerSeries R)
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff R k) f ∉ m) : ∃! (h : R⟦X⟧ˣ), ∃ (g : R[X]), Monic g ∧ g.degree = Nat.find ntriv ∧
     (∀ i : ℕ, i < degree g → coeff g i ∈ m ∧ f = g * h) := by
+  let R_ntriv : Nontrivial R := nontrivial_of_ne 0 1 (ne_of_mem_of_not_mem (Submodule.zero_mem m) ((Ideal.ne_top_iff_one m).mp (Ideal.IsMaximal.ne_top hmax)))
+  let R_ntriv' {k : ℕ} (kpos : k > 0): Nontrivial (R ⧸ m ^ k) := Submodule.Quotient.nontrivial_of_lt_top (m ^ k) <| lt_of_le_of_lt (Ideal.pow_le_self (Nat.not_eq_zero_of_lt kpos)) (Ne.lt_top (Ideal.IsMaximal.ne_top hmax))
+  have ntriv' {n : ℕ} (npos : n > 0) : ∃ (k : ℕ), (PowerSeries.coeff (R ⧸ m ^ n) k) (PowerSeries.map (Ideal.Quotient.mk (m ^ n)) f) ∉ m.map (Ideal.Quotient.mk (m ^ n)) := by
+    rcases ntriv with ⟨k, hk⟩
+    use k
+    simp [Ideal.pow_le_self (Nat.not_eq_zero_of_lt npos), hk]
+  let h_series : ℕ → R⟦X⟧ := fun k ↦ by
+    by_cases h : k = 0
+    · exact 0
+    · exact Classical.choose <| PowerSeries.map_surjective (Ideal.Quotient.mk (m ^ k)) Ideal.Quotient.mk_surjective
+        (Classical.choose <| preparation_lift (Nat.zero_lt_of_ne_zero h) (PowerSeries.map (Ideal.Quotient.mk (m ^ k)) f) (ntriv' (Nat.zero_lt_of_ne_zero h))).1
+  have h_series_spec {k : ℕ} (kpos : k > 0) : PowerSeries.map (Ideal.Quotient.mk (m ^ k)) (h_series k) =
+    (Classical.choose <| preparation_lift kpos (PowerSeries.map (Ideal.Quotient.mk (m ^ k)) f) (ntriv' kpos)).1 := by
+    simp only [Nat.not_eq_zero_of_lt kpos, ↓reduceDIte, h_series]
+    exact Classical.choose_spec <| PowerSeries.map_surjective (Ideal.Quotient.mk (m ^ k)) Ideal.Quotient.mk_surjective
+      (Classical.choose <| preparation_lift kpos (PowerSeries.map (Ideal.Quotient.mk (m ^ k)) f) (ntriv' kpos)).1
+  let g_series : ℕ → R[X] := fun k ↦ by
+    by_cases h : k = 0
+    · exact 0
+    · letI := R_ntriv' (Nat.zero_lt_of_ne_zero h)
+      exact Classical.choose <| exist_special_lift (Ideal.Quotient.mk (m ^ k)) Ideal.Quotient.mk_surjective
+        (Classical.choose_spec (Classical.choose_spec <| preparation_lift (Nat.zero_lt_of_ne_zero h) (PowerSeries.map (Ideal.Quotient.mk (m ^ k)) f) (ntriv' (Nat.zero_lt_of_ne_zero h))).1).1
+  have g_series_spec {k : ℕ} (kpos : k > 0) : Polynomial.map (Ideal.Quotient.mk (m ^ k)) (g_series k) = (Classical.choose (Classical.choose_spec <| preparation_lift kpos (PowerSeries.map (Ideal.Quotient.mk (m ^ k)) f) (ntriv' kpos)).1) ∧
+    Monic (g_series k) ∧ (g_series k).degree = (Classical.choose (Classical.choose_spec <| preparation_lift kpos (PowerSeries.map (Ideal.Quotient.mk (m ^ k)) f) (ntriv' kpos)).1).degree := by
+    simp only [Nat.not_eq_zero_of_lt kpos, ↓reduceDIte, g_series]
+    letI := R_ntriv' kpos
+    exact Classical.choose_spec <| exist_special_lift (Ideal.Quotient.mk (m ^ k)) Ideal.Quotient.mk_surjective
+        (Classical.choose_spec (Classical.choose_spec <| preparation_lift kpos (PowerSeries.map (Ideal.Quotient.mk (m ^ k)) f) (ntriv' kpos)).1).1
+  --induced by uniqueness
+  --have h_series_mod :
+  --have g_series_mod :
+  let h_coeff : ℕ → R := fun i ↦ by
+    let h_coeff_series : ℕ → R := fun k ↦ PowerSeries.coeff R i (h_series k)
+    sorry
+  let g_coeff : ℕ → R := fun i ↦ if i = (Nat.find ntriv) then 1 else if i > (Nat.find ntriv) then 0 else by
+    let g_coeff_series : ℕ → R := fun k ↦ Polynomial.coeff (g_series k) i
+    sorry
   sorry
+
 end
 
 section
@@ -441,7 +475,7 @@ section
 variable (F : Type*) [Field F] (ι : outParam Type*) [LinearOrderedCommGroupWithZero ι] [vR : Valued F ι]
 open Valued
 
-theorem Wierstrass_preparation' (f : PowerSeries 𝒪[F]) (ne : f ≠ 0)
+theorem Weierstrass_preparation' (f : PowerSeries 𝒪[F]) (ne : f ≠ 0)
     (π : 𝒪[F] ) (hyp : Ideal.span {π} = 𝓂[F] ) : ∃ (m : ℕ),
     ∃! (g : Polynomial 𝒪[F] ), ∃ (h : (PowerSeries 𝒪[F])ˣ),
     Monic g ∧ (∀ i : ℕ, i < degree g → (coeff g i) ∈ 𝓂[F]) ∧

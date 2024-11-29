@@ -502,21 +502,18 @@ theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R]
     (∀ i : ℕ, i < degree g → coeff g i ∈ m ∧ f = g * h) := by
   let R_ntriv : Nontrivial R := nontrivial_of_ne 0 1 (ne_of_mem_of_not_mem (Submodule.zero_mem m) ((Ideal.ne_top_iff_one m).mp (Ideal.IsMaximal.ne_top hmax)))
   let R_ntriv' {k : ℕ} (kpos : k > 0): Nontrivial (R ⧸ m ^ k) := Submodule.Quotient.nontrivial_of_lt_top (m ^ k) <| lt_of_le_of_lt (Ideal.pow_le_self (Nat.not_eq_zero_of_lt kpos)) (Ne.lt_top (Ideal.IsMaximal.ne_top hmax))
-  have ntriv' {n : ℕ} (npos : n > 0) : ∃ (k : ℕ), (PowerSeries.coeff (R ⧸ m ^ n) k) (PowerSeries.map (Ideal.Quotient.mk (m ^ n)) f) ∉ m.map (Ideal.Quotient.mk (m ^ n)) := by
-    rcases ntriv with ⟨k, hk⟩
-    use k
-    simp [Ideal.pow_le_self (Nat.not_eq_zero_of_lt npos), hk]
-  have findeq {n : ℕ} (npos : n > 0) : Nat.find (ntriv' npos) = Nat.find ntriv := map_ntriv_findeq' npos ntriv
-  let h_series' := fun (n : {n : ℕ // n > 0}) ↦ (Classical.choose <| preparation_lift n.2 (PowerSeries.map (Ideal.Quotient.mk (m ^ n.1)) f) (ntriv' n.2))
-  let g_series' := fun (n : {n : ℕ // n > 0}) ↦ (Classical.choose (Classical.choose_spec <| preparation_lift n.2 (PowerSeries.map (Ideal.Quotient.mk (m ^ n.1)) f) (ntriv' n.2)).1)
-  let series_spec' := fun (n : {n : ℕ // n > 0}) ↦ (Classical.choose_spec (Classical.choose_spec <| preparation_lift n.2 (PowerSeries.map (Ideal.Quotient.mk (m ^ n.1)) f) (ntriv' n.2)).1)
+  have findeq {n : ℕ} (npos : n > 0) : Nat.find (map_ntriv' npos ntriv) = Nat.find ntriv := map_ntriv_findeq' npos ntriv
+  let h_series' := fun (n : {n : ℕ // n > 0}) ↦ (Classical.choose <| preparation_lift n.2 (PowerSeries.map (Ideal.Quotient.mk (m ^ n.1)) f) (map_ntriv' n.2 ntriv))
+  let g_series' := fun (n : {n : ℕ // n > 0}) ↦ (Classical.choose (Classical.choose_spec <| preparation_lift n.2 (PowerSeries.map (Ideal.Quotient.mk (m ^ n.1)) f) (map_ntriv' n.2 ntriv)).1)
+  let series_spec' := fun (n : {n : ℕ // n > 0}) ↦ (Classical.choose_spec (Classical.choose_spec <| preparation_lift n.2 (PowerSeries.map (Ideal.Quotient.mk (m ^ n.1)) f) (map_ntriv' n.2 ntriv)).1)
   have series_mon (n : {n : ℕ // n > 0}) : Monic (g_series' n) := (series_spec' n).1
   have series_deg (n : {n : ℕ // n > 0}) : (g_series' n).degree = Nat.find ntriv := by rw [← findeq n.2, (series_spec' n).2.1]
   have series_coeff (n : {n : ℕ // n > 0}) : ∀ i : ℕ, i < (g_series' n).degree → (g_series' n).coeff i ∈ Ideal.map (Ideal.Quotient.mk (m ^ n.1)) m := (series_spec' n).2.2.1
   have series_eq (n : {n : ℕ // n > 0}) : (PowerSeries.map (Ideal.Quotient.mk (m ^ n.1))) f = (g_series' n) * (h_series' n) := (series_spec' n).2.2.2
+  have series_uniq (n : {n : ℕ // n > 0}) (h : (R ⧸ m ^ n.1)⟦X⟧ˣ) : _ := (Classical.choose_spec <| preparation_lift n.2 (PowerSeries.map (Ideal.Quotient.mk (m ^ n.1)) f) (map_ntriv' n.2 ntriv)).2 (h : (R ⧸ m ^ n.1)⟦X⟧ˣ)
   let h_series : ℕ → R⟦X⟧ := fun k ↦ by
     by_cases h : k = 0
-    · exact 0
+    · exact 1
     · exact Classical.choose <| PowerSeries.map_surjective (Ideal.Quotient.mk (m ^ k)) Ideal.Quotient.mk_surjective (h_series' ⟨k,(Nat.zero_lt_of_ne_zero h)⟩)
   have h_series_spec {k : ℕ} (kpos : k > 0) : PowerSeries.map (Ideal.Quotient.mk (m ^ k)) (h_series k) = (h_series' ⟨k, kpos⟩) := by
     simp only [Nat.not_eq_zero_of_lt kpos, ↓reduceDIte, h_series]
@@ -531,7 +528,7 @@ theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R]
     simp only [Nat.not_eq_zero_of_lt kpos, ↓reduceDIte, g_series]
     letI := R_ntriv' kpos
     exact Classical.choose_spec <| exist_special_lift (Ideal.Quotient.mk (m ^ k)) Ideal.Quotient.mk_surjective
-      (Classical.choose_spec (Classical.choose_spec <| preparation_lift kpos (PowerSeries.map (Ideal.Quotient.mk (m ^ k)) f) (ntriv' kpos)).1).1
+      (Classical.choose_spec (Classical.choose_spec <| preparation_lift kpos (PowerSeries.map (Ideal.Quotient.mk (m ^ k)) f) (map_ntriv' kpos ntriv)).1).1
   let HOM {a b : ℕ} (le : a ≤ b) : R⧸m ^ b →+* R⧸m ^ a :=
     Ideal.Quotient.lift (m ^ b) (Ideal.Quotient.mk (m ^ a))
     (fun _ ha ↦ Ideal.Quotient.eq_zero_iff_mem.mpr ((Ideal.pow_le_pow_right le) ha))
@@ -555,11 +552,17 @@ theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R]
     congr 1
 
     sorry
+  let h_coeff_series (i : ℕ): ℕ → R := fun k ↦ PowerSeries.coeff R i (h_series k)
+  have h_coeff_series_mod (i : ℕ): ∀ {a b : ℕ}, a ≤ b → (h_coeff_series i) a ≡ (h_coeff_series i) b [SMOD m ^ a • (⊤ : Submodule R R)] := by
+    sorry
   let h_coeff : ℕ → R := fun i ↦ by
-    let h_coeff_series : ℕ → R := fun k ↦ PowerSeries.coeff R i (h_series k)
+
+    sorry
+  let g_coeff_series (i : ℕ): ℕ → R := fun k ↦ Polynomial.coeff (g_series k) i
+  have g_coeff_series_mod (i : ℕ) : ∀ {a b : ℕ}, a ≤ b → (g_coeff_series i) a ≡ (g_coeff_series i) b [SMOD m ^ a • (⊤ : Submodule R R)] := by
     sorry
   let g_coeff : ℕ → R := fun i ↦ if i = (Nat.find ntriv) then 1 else if i > (Nat.find ntriv) then 0 else by
-    let g_coeff_series : ℕ → R := fun k ↦ Polynomial.coeff (g_series k) i
+
     sorry
   sorry
 

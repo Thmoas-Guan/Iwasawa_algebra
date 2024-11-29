@@ -651,6 +651,13 @@ theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R]
   have h_spec (i : ℕ) : ∀ n : ℕ, (PowerSeries.coeff R i) (h_series n) ≡ (PowerSeries.coeff R i) h [SMOD m ^ n • (⊤ : Submodule R R)]:= by
     simp only [coeff_mk, h]
     exact Classical.choose_spec (IsPrecomplete.prec IsAdicComplete.toIsPrecomplete (h_coeff_series_mod i))
+  have h_spec' {n : ℕ} (npos : n > 0) : PowerSeries.map (Ideal.Quotient.mk (m ^ n)) h = h_series' ⟨n, npos⟩ := by
+    rw [← h_series_spec npos]
+    ext i
+    simp only [PowerSeries.coeff_map]
+    apply (Ideal.Quotient.mk_eq_mk_iff_sub_mem _ _).mpr
+    convert SModEq.sub_mem.mp (h_spec i n).symm
+    simp only [smul_eq_mul, Ideal.mul_top]
   have hu : IsUnit h := by
     --use series 1
     sorry
@@ -681,6 +688,25 @@ theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R]
   have g_spec {i : ℕ} (hi : i < Nat.find ntriv) : ∀ n : ℕ, (g_series n).coeff i ≡ g_coeff i [SMOD m ^ n • (⊤ : Submodule R R)] := by
     simp only [gt_iff_lt, Nat.ne_of_lt hi, ↓reduceIte, g_coeff, Nat.not_lt_of_gt hi]
     exact Classical.choose_spec (IsPrecomplete.prec IsAdicComplete.toIsPrecomplete (g_coeff_series_mod i))
+  have g_spec' {n : ℕ} (npos : n > 0) : Polynomial.map (Ideal.Quotient.mk (m ^ n)) g = g_series' ⟨n, npos⟩ := by
+    rw [← (g_series_spec npos).1]
+    have deg : (g_series n).degree = Nat.find ntriv := by rw [(g_series_spec npos).2.2, series_deg]
+    have ndeg : (g_series n).natDegree = Nat.find ntriv := natDegree_eq_of_degree_eq_some deg
+    --Polynomial.coeff_eq_zero_of_natDegree_lt
+    ext i
+    simp only [Polynomial.coeff_map]
+    by_cases ne : i = Nat.find ntriv
+    · simp [ ne, g, g_coeff, ← ndeg, (g_series_spec npos).2.1]
+    · rcases lt_or_gt_of_ne ne with lt|gt
+      · apply (Ideal.Quotient.mk_eq_mk_iff_sub_mem _ _).mpr
+        convert SModEq.sub_mem.mp (g_spec lt n).symm
+        simp only [smul_eq_mul, Ideal.mul_top]
+      · simp only [gt_iff_lt.mp gt, smul_eq_mul, Ideal.mul_top, ne_eq, Set.coe_setOf,
+        Set.mem_setOf_eq, coeff_ofFinsupp, Finsupp.coe_mk, ne, ↓reduceIte, g, g_coeff, map_zero]
+        have : ((g_series n).coeff i) = 0 := by
+          apply Polynomial.coeff_eq_zero_of_natDegree_lt
+          exact ndeg ▸ gt
+        simp only [this, map_zero]
   use hu.unit
   constructor
   · use g
@@ -707,8 +733,22 @@ theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R]
           intro i hi
           --use series 1
           sorry
-        · -- mod m ^ n
-          sorry
+        · simp only [IsUnit.unit_spec]
+          have {n : ℕ} (npos : n > 0): PowerSeries.map (Ideal.Quotient.mk (m ^ n)) f = PowerSeries.map (Ideal.Quotient.mk (m ^ n)) (g * h) := by
+            have coe : (PowerSeries.map (Ideal.Quotient.mk (m ^ n))) g = (Polynomial.map (Ideal.Quotient.mk (m ^ n))) g := by
+              ext
+              simp
+            simp only [map_mul, coe, h_spec' npos, g_spec' npos, ← series_eq]
+          ext i
+          have modeq (n : ℕ) : (PowerSeries.coeff R i) f - (PowerSeries.coeff R i) (g * h) ≡ 0 [SMOD m ^ n • (⊤ : Submodule R R)] := by
+            by_cases npos : n > 0
+            · apply SModEq.zero.mpr
+              simp only [smul_eq_mul, Ideal.mul_top]
+              apply (Ideal.Quotient.mk_eq_mk_iff_sub_mem _ _).mp
+              simp only [← PowerSeries.coeff_map]
+              rw [this npos]
+            · simp [Nat.eq_zero_of_not_pos npos]
+          exact sub_eq_zero.mp <|  IsHausdorff.haus IsAdicComplete.toIsHausdorff ((PowerSeries.coeff R i) f - (PowerSeries.coeff R i) (g * h)) modeq
   · rintro H ⟨G, monG, degG, hG, muleq⟩
     have Hu (n : ℕ): IsUnit ((PowerSeries.map (Ideal.Quotient.mk (m ^ n))) H) := by
       apply RingHom.isUnit_map

@@ -741,7 +741,7 @@ theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R]
           exact this i hi
         · simp only [IsUnit.unit_spec]
           have {n : ℕ} (npos : n > 0): PowerSeries.map (Ideal.Quotient.mk (m ^ n)) f = PowerSeries.map (Ideal.Quotient.mk (m ^ n)) (g * h) := by
-            simp only [map_mul, Polynomial.map_coe, h_spec' npos, g_spec' npos, ← series_eq]
+            simp only [map_mul,← Polynomial.map_coe, h_spec' npos, g_spec' npos, ← series_eq]
           ext i
           have modeq (n : ℕ) : (PowerSeries.coeff R i) f - (PowerSeries.coeff R i) (g * h) ≡ 0 [SMOD m ^ n • (⊤ : Submodule R R)] := by
             by_cases npos : n > 0

@@ -34,3 +34,9 @@
   2.2  $\lim_{\leftarrow, i} R[T] / ((1 + T)^{p^i} - 1) \cong R[[T]].$
 
   2.3 other trivial transition maps
+
+**3 For the UFD**
+
+  3.1 Finish "Weierstrass Preparation" for DVR (gnl's job)
+
+  3.2 PowerSeries on a DVR is UFD

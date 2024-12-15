@@ -1,6 +1,6 @@
 import Mathlib
 
-set_option linter.unusedTactic false
+--set_option linter.unusedTactic false
 
 open Polynomial PowerSeries
 
@@ -772,8 +772,34 @@ theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R]
     exact sub_eq_zero.mp <| IsHausdorff.haus IsAdicComplete.toIsHausdorff ((PowerSeries.coeff R i) H - (PowerSeries.coeff R i) h) coeff_modeq
 
 open Classical in
-theorem Weierstrass_preparation' [IsDomain R] [hmax : m.IsMaximal] [comp : IsAdicComplete m R] (π : R) (prin : Ideal.span {π} = m) (f : R⟦X⟧)
-    (ne0 : f ≠ 0) : ∃! (k : ℕ), ∃! (h : R⟦X⟧ˣ), ∃ (g : R[X]), Monic g ∧
+lemma deg_eq_find [Nontrivial R] [hmax : m.IsMaximal] (f : PowerSeries R)
+    (ntriv : ∃ (k : ℕ), (PowerSeries.coeff R k) f ∉ m) (h : R⟦X⟧ˣ) (g : R[X]) (mon : Monic g)
+    (hg : ∀ i : ℕ, i < degree g → coeff g i ∈ m) (eq : f = g * h) : g.degree = Nat.find ntriv := by
+  rw [degree_eq_natDegree (Monic.ne_zero mon), Nat.cast_inj]
+  symm
+  apply (Nat.find_eq_iff ntriv).mpr
+  have mapg : Polynomial.map (Ideal.Quotient.mk m) g = Polynomial.X ^ g.natDegree := by
+    ext i
+    by_cases ne : i = g.natDegree
+    · simp [ne, mon]
+    · rcases lt_or_gt_of_ne ne with lt|gt
+      · simp only [Polynomial.coeff_map, Polynomial.coeff_X_pow, ne, ↓reduceIte]
+        exact Ideal.Quotient.eq_zero_iff_mem.mpr (hg i (coe_lt_degree.mpr lt))
+      · simp [ne, Polynomial.coeff_eq_zero_of_natDegree_lt gt]
+  have mapf : PowerSeries.map (Ideal.Quotient.mk m) f = (Polynomial.X ^ g.natDegree : (R⧸m)[X]) * (PowerSeries.map (Ideal.Quotient.mk m) h) := by
+    rw [← mapg, map_coe, eq, map_mul]
+  simp only [← Ideal.Quotient.eq_zero_iff_mem, Decidable.not_not, ← PowerSeries.coeff_map]
+  constructor
+  · --PowerSeries.coeff_mul_X_pow'
+    simp only [mapf, Polynomial.coe_pow, Polynomial.coe_X, PowerSeries.coeff_X_pow_mul', le_refl,
+      ↓reduceIte, tsub_self, PowerSeries.coeff_map, coeff_zero_eq_constantCoeff]
+    exact IsUnit.ne_zero (RingHom.isUnit_map (Ideal.Quotient.mk m) (isUnit_constantCoeff h.1 (Units.isUnit h)))
+  · intro i hi
+    simp [mapf, PowerSeries.coeff_X_pow_mul', hi]
+
+open Classical in
+theorem Weierstrass_preparation_not_field [IsDomain R] [hmax : m.IsMaximal] [comp : IsAdicComplete m R] {π : R} (prin : Ideal.span {π} = m) {f : R⟦X⟧}
+    (ne0 : f ≠ 0) (pi_ne0 : π ≠ 0): ∃! (k : ℕ), ∃! (h : R⟦X⟧ˣ), ∃ (g : R[X]), Monic g ∧
     (∀ i : ℕ, i < degree g → (coeff g i) ∈ m) ∧ f = (π ^ k) • (g * h) := by
   have exist_nmem : ∃ n : ℕ, ∃ i, PowerSeries.coeff R i f ∉ m ^ n := by
     by_contra h
@@ -797,10 +823,84 @@ theorem Weierstrass_preparation' [IsDomain R] [hmax : m.IsMaximal] [comp : IsAdi
     ext i
     simp only [map_smul, coeff_mk, smul_eq_mul, f']
     exact (Classical.choose_spec (Ideal.mem_span_singleton.mp (this i))).symm
-  have ntriv : ∃ (k : ℕ), (PowerSeries.coeff R k) f ∉ m := by
-    sorry
+  have ntriv : ∃ (i : ℕ), (PowerSeries.coeff R i) f' ∉ m := by
+    rcases Nat.find_spec exist_nmem with ⟨i, hi⟩
+    use i
+    by_contra h
+    absurd hi
+    rw [← eqfind, pow_add, pow_one, ← f'_spec, map_smul, smul_eq_mul]
+    apply Ideal.mul_mem_mul _ h
+    simp only [← prin, Ideal.pow_mem_pow (Ideal.mem_span_singleton_self π) k]
+  have muleq {g : R⟦X⟧} : (π ^ k) • g = f → g = f' := by
+    intro eq
+    ext i
+    have : (PowerSeries.coeff R i) (π ^ k • g) = (PowerSeries.coeff R i) (π ^ k • f') := by
+      rw [eq, f'_spec]
+    simp only [map_smul, smul_eq_mul, mul_eq_mul_left_iff, pow_eq_zero_iff', pi_ne0, ne_eq,
+      false_and, or_false] at this
+    exact this
+  use k
+  constructor
+  · rcases Weierstrass_preparation f' ntriv with ⟨h, ⟨g, mon, degg, hg, eq⟩, uniq⟩
+    use h
+    constructor
+    · use g
+      simp only [mon, true_and]
+      constructor
+      · exact hg
+      · rw [← eq, f'_spec]
+    · rintro h' ⟨g', mon', hg', eq'⟩
+      have : g'.degree = Nat.find ntriv := deg_eq_find f' ntriv h' g' mon' hg' (muleq eq'.symm).symm
+      apply uniq h'
+      use g'
+      exact ⟨mon', this, hg', (muleq eq'.symm).symm⟩
+  · intro k' ⟨h', ⟨g', mon', hg', eq'⟩, _⟩
+    have : Nat.find exist_nmem = k' + 1 := by
+      apply (Nat.find_eq_iff exist_nmem).mpr
+      constructor
+      · use g'.natDegree
+        simp only [eq', map_smul, smul_eq_mul]
+        have nmem : (PowerSeries.coeff R g'.natDegree) (g' * h') ∉ m := by
+          apply Ideal.Quotient.eq_zero_iff_mem.not.mp
+          have mapg : Polynomial.map (Ideal.Quotient.mk m) g' = Polynomial.X ^ g'.natDegree := by
+            ext i
+            by_cases ne : i = g'.natDegree
+            · simp [ne, mon']
+            · rcases lt_or_gt_of_ne ne with lt|gt
+              · simp only [Polynomial.coeff_map, Polynomial.coeff_X_pow, ne, ↓reduceIte]
+                exact Ideal.Quotient.eq_zero_iff_mem.mpr (hg' i (coe_lt_degree.mpr lt))
+              · simp [ne, Polynomial.coeff_eq_zero_of_natDegree_lt gt]
+          simp only [← PowerSeries.coeff_map, map_mul, ← map_coe, mapg, Polynomial.coe_pow,
+            Polynomial.coe_X, PowerSeries.coeff_X_pow_mul', le_refl, ↓reduceIte, tsub_self]
+          simp only [PowerSeries.coeff_map, coeff_zero_eq_constantCoeff]
+          exact IsUnit.ne_zero (RingHom.isUnit_map (Ideal.Quotient.mk m) (isUnit_constantCoeff h'.1 (Units.isUnit h')))
+        by_contra h
+        rw [← prin, Ideal.span_singleton_pow] at h
+        rcases Ideal.mem_span_singleton.mp h with ⟨r, hr⟩
+        rw [pow_add, pow_one, mul_assoc] at hr
+        simp only [mul_eq_mul_left_iff, pow_eq_zero_iff', pi_ne0, ne_eq, false_and, or_false] at hr
+        absurd nmem
+        rw [← prin]
+        apply Ideal.mem_span_singleton.mpr
+        use r
+      · simp only [not_exists, Decidable.not_not]
+        intro k hk i
+        have : k ≤ k' := Nat.le_of_lt_succ hk
+        apply Ideal.pow_le_pow_right (Nat.le_of_lt_succ hk)
+        simp only [← prin, Ideal.span_singleton_pow, eq', map_smul, smul_eq_mul]
+        exact Ideal.mem_span_singleton.mpr (dvd_mul_right _ _)
+    simp [k, this]
 
-  sorry
+end
+
+section
+
+variable (R : Type*) [CommRing R] [IsDomain R]
+
+theorem Weierstrass_preparation'' [DiscreteValuationRing R] [comp : IsAdicComplete (IsLocalRing.maximalIdeal R) R](f : R⟦X⟧) (ne0 : f ≠ 0)
+    (π : R) (irr : Irreducible π) : ∃! (k : ℕ), ∃! (h : R⟦X⟧ˣ), ∃ (g : R[X]), Monic g ∧
+    (∀ i : ℕ, i < degree g → (coeff g i) ∈ IsLocalRing.maximalIdeal R) ∧ f = (π ^ k) • (g * h) :=
+  Weierstrass_preparation_not_field irr.maximalIdeal_eq.symm ne0 irr.ne_zero
 
 end
 
@@ -818,14 +918,3 @@ theorem Weierstrass_preparation' (f : PowerSeries 𝒪[F]) (ne : f ≠ 0)
 
 end
 -/
-
-section
-
-variable (R : Type*) [CommRing R] [IsDomain R]
-
-theorem Weierstrass_preparation'' [DiscreteValuationRing R] [comp : IsAdicComplete (IsLocalRing.maximalIdeal R) R](f : R⟦X⟧) (ne0 : f ≠ 0)
-    (π : R) (irr : Irreducible π) : ∃! (h : R⟦X⟧ˣ), ∃ (m : ℕ), ∃ (g : R[X]), Monic g ∧
-    (∀ i : ℕ, i < degree g → (coeff g i) ∈ IsLocalRing.maximalIdeal R) ∧ f = ((π ^ m) • g) * h := by
-  sorry
-
-end

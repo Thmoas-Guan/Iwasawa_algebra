@@ -194,13 +194,22 @@ lemma preparation_lift_triv {n : ℕ} (neq0 : n = 0) [hmax : m.IsMaximal] (f : P
     rcases Ideal.mem_image_of_mem_map_of_surjective (Ideal.Quotient.mk (m ^ (n + 1))) Ideal.Quotient.mk_surjective hx with ⟨r, hr, eq⟩
     rw [← eq, Ideal.Quotient.eq_zero_iff_mem, neq0, zero_add, pow_one]
     exact hr
-  have eqfind : f.order.get (order_finite_iff_ne_zero.mpr (ne0 ntriv)) = Nat.find ntriv := by
-    apply PartENat.get_eq_iff_eq_coe.mpr (order_eq_nat.mpr _)
+  have eqfind : f.order.lift (order_finite_iff_ne_zero.mpr (ne0 ntriv)) = Nat.find ntriv := by
+    have : f.order = Nat.find ntriv := by
+      apply order_eq_nat.mpr
+      constructor
+      · by_contra h
+        absurd Nat.find_spec ntriv
+        simp only [h, Submodule.zero_mem]
+      · exact fun i hi ↦ this <| Decidable.not_not.mp (Nat.find_min ntriv hi)
+    simp only [this, ENat.lift_coe]
+    --rw [ENat.coe_lift _ (order_finite_iff_ne_zero.mpr (ne0 ntriv))]
+    /-apply PartENat.lift_eq_iff_eq_coe.mpr (order_eq_nat.mpr _)
     constructor
     · by_contra h
       absurd Nat.find_spec ntriv
       simp only [h, Submodule.zero_mem]
-    · exact fun i hi ↦ this <| Decidable.not_not.mp (Nat.find_min ntriv hi)
+    · exact fun i hi ↦ this <| Decidable.not_not.mp (Nat.find_min ntriv hi)-/
   let max' : (m ^ (n + 1)).IsMaximal := by simpa only [neq0, zero_add, pow_one] using hmax
   let hField : Field (R ⧸ m ^ (n + 1)) := Ideal.Quotient.field (m ^ (n + 1))
   have muleq : f = ((Polynomial.X (R := (R ⧸ m ^ (n + 1))) ^ (Nat.find ntriv)) : (R ⧸ m ^ (n + 1))[X]) * ↑f.Unit_of_divided_by_X_pow_order := by

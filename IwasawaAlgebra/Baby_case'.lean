@@ -521,6 +521,8 @@ lemma map_ntriv_findeq' {n : ℕ} (npos : n > 0) {f : PowerSeries R} (ntriv : �
   · intro k hk
     exact Decidable.not_not.mpr <| Ideal.mem_map_of_mem (Ideal.Quotient.mk (m ^ n)) (Decidable.not_not.mp (Nat.find_min ntriv hk))
 
+--need split on existence and uniqueness
+
 open Classical in
 theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R] (f : PowerSeries R)
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff R k) f ∉ m) : ∃! (h : R⟦X⟧ˣ), ∃ (g : R[X]), Monic g ∧ g.degree = Nat.find ntriv ∧
@@ -790,12 +792,13 @@ lemma deg_eq_find [Nontrivial R] [hmax : m.IsMaximal] (f : PowerSeries R)
     rw [← mapg, map_coe, eq, map_mul]
   simp only [← Ideal.Quotient.eq_zero_iff_mem, Decidable.not_not, ← PowerSeries.coeff_map]
   constructor
-  · --PowerSeries.coeff_mul_X_pow'
-    simp only [mapf, Polynomial.coe_pow, Polynomial.coe_X, PowerSeries.coeff_X_pow_mul', le_refl,
+  · simp only [mapf, Polynomial.coe_pow, Polynomial.coe_X, PowerSeries.coeff_X_pow_mul', le_refl,
       ↓reduceIte, tsub_self, PowerSeries.coeff_map, coeff_zero_eq_constantCoeff]
     exact IsUnit.ne_zero (RingHom.isUnit_map (Ideal.Quotient.mk m) (isUnit_constantCoeff h.1 (Units.isUnit h)))
   · intro i hi
     simp [mapf, PowerSeries.coeff_X_pow_mul', hi]
+
+--need split on existence and uniqueness
 
 open Classical in
 theorem Weierstrass_preparation_not_field [IsDomain R] [hmax : m.IsMaximal] [comp : IsAdicComplete m R] {π : R} (prin : Ideal.span {π} = m) {f : R⟦X⟧}
@@ -896,6 +899,8 @@ end
 section
 
 variable (R : Type*) [CommRing R] [IsDomain R]
+
+--need split on existence and uniqueness
 
 theorem Weierstrass_preparation'' [DiscreteValuationRing R] [comp : IsAdicComplete (IsLocalRing.maximalIdeal R) R](f : R⟦X⟧) (ne0 : f ≠ 0)
     (π : R) (irr : Irreducible π) : ∃! (k : ℕ), ∃! (h : R⟦X⟧ˣ), ∃ (g : R[X]), Monic g ∧

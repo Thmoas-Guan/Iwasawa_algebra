@@ -65,6 +65,7 @@ variable (m)
 
 open Set
 
+/--The canonical transition map from `R⧸m ^ b` to `R⧸m ^ a` when `a ≤ b`-/
 def TransitionMap {a b : ℕ} (le : a ≤ b) : R⧸m ^ b →+* R⧸m ^ a :=
   Ideal.Quotient.lift (m ^ b) (Ideal.Quotient.mk (m ^ a))
   (fun _ ha ↦ Ideal.Quotient.eq_zero_iff_mem.mpr ((Ideal.pow_le_pow_right le) ha))
@@ -422,7 +423,6 @@ lemma preparation_lift {n : ℕ} (npos : n > 0) [hmax : m.IsMaximal] (f : PowerS
               nth_rw 1 [← h1, ← h2]
               simp [monG, mon']
             · have lgt : l > (Nat.find ntriv) := Nat.lt_of_le_of_ne lge fun a => leq a.symm
-              have : G.natDegree < l := lt_of_eq_of_lt h1 lgt
               simp [Polynomial.coeff_eq_zero_of_natDegree_lt (lt_of_eq_of_lt h1 lgt),Polynomial.coeff_eq_zero_of_natDegree_lt (lt_of_eq_of_lt h2 lgt)]
           have eqγ : ((H.1 - h'.1) * h'.inv) = γ := by
             apply PowerSeries.ext
@@ -528,7 +528,7 @@ lemma map_ntriv_findeq' {n : ℕ} (npos : n > 0) {f : PowerSeries R} (ntriv : �
 --need split on existence and uniqueness
 
 open Classical in
-theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R] (f : PowerSeries R)
+theorem Weierstrass_preparation' [hmax : m.IsMaximal] [comp : IsAdicComplete m R] (f : PowerSeries R)
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff R k) f ∉ m) : ∃! (h : R⟦X⟧ˣ), ∃ (g : R[X]), Monic g ∧ g.degree = Nat.find ntriv ∧
     (∀ i : ℕ, i < degree g → coeff g i ∈ m) ∧ f = g * h := by
   let R_ntriv : Nontrivial R := nontrivial_of_ne 0 1 (ne_of_mem_of_not_mem (Submodule.zero_mem m) ((Ideal.ne_top_iff_one m).mp (Ideal.IsMaximal.ne_top hmax)))
@@ -780,16 +780,14 @@ theorem Weierstrass_preparation [hmax : m.IsMaximal] [comp : IsAdicComplete m R]
 open Classical in
 lemma Weierstrass_preparation_strong_uniq [hmax : m.IsMaximal] [IsAdicComplete m R] (f : R⟦X⟧)
     (ntriv : ∃ (k : ℕ), (PowerSeries.coeff _ k) f ∉ m) (h : R⟦X⟧ˣ) (g : R[X]) (mon : Monic g)
-    (distinguish : (∀ i : ℕ, i < degree g → coeff g i ∈ m)) (eq : f = g * h) : h = Classical.choose (Weierstrass_preparation f ntriv) := by
-  apply (Classical.choose_spec (Weierstrass_preparation f ntriv)).2
+    (distinguish : (∀ i : ℕ, i < degree g → coeff g i ∈ m)) (eq : f = g * h) : h = Classical.choose (Weierstrass_preparation' f ntriv) := by
+  apply (Classical.choose_spec (Weierstrass_preparation' f ntriv)).2
   use g
   letI : Nontrivial R := nontrivial_of_ne 0 1 (ne_of_mem_of_not_mem (Submodule.zero_mem m) ((Ideal.ne_top_iff_one m).mp (Ideal.IsMaximal.ne_top hmax)))
   exact ⟨mon, deg_eq_find Ideal.IsPrime.ne_top' f ntriv h g mon distinguish eq, distinguish, eq⟩
 
---need split on existence and uniqueness
-
 open Classical in
-theorem Weierstrass_preparation_not_field [IsDomain R] [hmax : m.IsMaximal] [comp : IsAdicComplete m R] {π : R} (prin : Ideal.span {π} = m) {f : R⟦X⟧}
+lemma Weierstrass_preparation_aux [IsDomain R] [hmax : m.IsMaximal] [comp : IsAdicComplete m R] {π : R} (prin : Ideal.span {π} = m) {f : R⟦X⟧}
     (ne0 : f ≠ 0) (pi_ne0 : π ≠ 0): ∃! khg : ℕ × R⟦X⟧ˣ × R[X], Monic khg.2.2 ∧
     (∀ i : ℕ, i < degree khg.2.2 → (coeff khg.2.2 i) ∈ m) ∧ f = (π ^ khg.1) • (khg.2.2 * khg.2.1) := by
   have exist_nmem : ∃ n : ℕ, ∃ i, PowerSeries.coeff R i f ∉ m ^ n := by
@@ -828,7 +826,7 @@ theorem Weierstrass_preparation_not_field [IsDomain R] [hmax : m.IsMaximal] [com
     have : (PowerSeries.coeff R i) (π ^ k • g) = (PowerSeries.coeff R i) (π ^ k • f') := by rw [eq, f'_spec]
     simpa only [map_smul, smul_eq_mul, mul_eq_mul_left_iff, pow_eq_zero_iff', pi_ne0, ne_eq,
       false_and, or_false]
-  rcases Weierstrass_preparation f' ntriv with ⟨h, ⟨g, mon, degg, hg, eq⟩, uniq⟩
+  rcases Weierstrass_preparation' f' ntriv with ⟨h, ⟨g, mon, degg, hg, eq⟩, uniq⟩
   use (k, h, g)
   constructor
   · exact ⟨mon, hg, by rw [← eq, f'_spec]⟩
@@ -866,7 +864,6 @@ theorem Weierstrass_preparation_not_field [IsDomain R] [hmax : m.IsMaximal] [com
           use r
         · simp only [not_exists, Decidable.not_not]
           intro k hk i
-          have : k ≤ k' := Nat.le_of_lt_succ hk
           apply Ideal.pow_le_pow_right (Nat.le_of_lt_succ hk)
           simp only [← prin, Ideal.span_singleton_pow, eq', map_smul, smul_eq_mul]
           exact Ideal.mem_span_singleton.mpr (dvd_mul_right _ _)
@@ -882,32 +879,10 @@ theorem Weierstrass_preparation_not_field [IsDomain R] [hmax : m.IsMaximal] [com
      g' = f' * h'⁻¹ := by simp [← (muleq eq'.symm)]
      _ = _ := by simp [heq, eq]
 
-end
-
-section
-
-variable (R : Type*) [CommRing R] [IsDomain R]
-
---need split on existence and uniqueness
-
-theorem Weierstrass_preparation'' [DiscreteValuationRing R] [comp : IsAdicComplete (IsLocalRing.maximalIdeal R) R](f : R⟦X⟧) (ne0 : f ≠ 0)
+--note : the conditions needed for `R` in `Weierstrass_preparation_aux` actually implies DVR
+theorem Weierstrass_preparation [IsDomain R] [DiscreteValuationRing R] [comp : IsAdicComplete (IsLocalRing.maximalIdeal R) R](f : R⟦X⟧) (ne0 : f ≠ 0)
     (π : R) (irr : Irreducible π) : ∃! khg : ℕ × R⟦X⟧ˣ × R[X], Monic khg.2.2 ∧
     (∀ i : ℕ, i < degree khg.2.2 → (coeff khg.2.2 i) ∈ IsLocalRing.maximalIdeal R) ∧ f = (π ^ khg.1) • (khg.2.2 * khg.2.1) :=
-  Weierstrass_preparation_not_field irr.maximalIdeal_eq.symm ne0 irr.ne_zero
+  Weierstrass_preparation_aux irr.maximalIdeal_eq.symm ne0 irr.ne_zero
 
 end
-
-/-
-section
-
-variable (F : Type*) [Field F] (ι : outParam Type*) [LinearOrderedCommGroupWithZero ι] [vR : Valued F ι]
-open Valued
-
-theorem Weierstrass_preparation' (f : PowerSeries 𝒪[F]) (ne : f ≠ 0)
-    (π : 𝒪[F] ) (hyp : Ideal.span {π} = 𝓂[F] ) : ∃ (m : ℕ),
-    ∃! (g : Polynomial 𝒪[F] ), ∃ (h : (PowerSeries 𝒪[F])ˣ),
-    Monic g ∧ (∀ i : ℕ, i < degree g → (coeff g i) ∈ 𝓂[F]) ∧
-    f = (π ^ m) • g • h := sorry
-
-end
--/

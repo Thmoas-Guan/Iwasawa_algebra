@@ -192,7 +192,7 @@ lemma deg_eq_find [Nontrivial R] (ne_top : m ≠ ⊤)(f : PowerSeries R)
   constructor
   · simp only [mapf, Polynomial.coe_pow, Polynomial.coe_X, PowerSeries.coeff_X_pow_mul', le_refl,
       ↓reduceIte, tsub_self, PowerSeries.coeff_map, coeff_zero_eq_constantCoeff]
-    letI : Nontrivial (R ⧸ m) := Ideal.Quotient.nontrivial ne_top
+    let _ : Nontrivial (R ⧸ m) := Ideal.Quotient.nontrivial ne_top
     exact IsUnit.ne_zero (RingHom.isUnit_map (Ideal.Quotient.mk m) (isUnit_constantCoeff h.1 (Units.isUnit h)))
   · intro i hi
     simp [mapf, PowerSeries.coeff_X_pow_mul', hi]
@@ -439,7 +439,7 @@ lemma preparation_lift_strong_uniq {n : ℕ} (npos : n > 0) [hmax : m.IsMaximal]
     (distinguish : (∀ i : ℕ, i < degree g → coeff g i ∈ m.map (Ideal.Quotient.mk (m ^ n)))) (eq : f = g * h) : h = Classical.choose (preparation_lift npos f ntriv) := by
   apply (Classical.choose_spec (preparation_lift npos f ntriv)).2
   use g
-  letI : Nontrivial (R ⧸ m ^ n) := Submodule.Quotient.nontrivial_of_lt_top (m ^ n) (lt_of_le_of_lt (Ideal.pow_le_self (Nat.not_eq_zero_of_lt npos)) (Ne.lt_top (Ideal.IsMaximal.ne_top hmax)))
+  let _ : Nontrivial (R ⧸ m ^ n) := Submodule.Quotient.nontrivial_of_lt_top (m ^ n) (lt_of_le_of_lt (Ideal.pow_le_self (Nat.not_eq_zero_of_lt npos)) (Ne.lt_top (Ideal.IsMaximal.ne_top hmax)))
   have ne_top : Ideal.map (Ideal.Quotient.mk (m ^ n)) m ≠ ⊤ := by
     apply (Ideal.ne_top_iff_one _).mpr
     by_contra mem
@@ -555,7 +555,7 @@ theorem Weierstrass_preparation' [hmax : m.IsMaximal] [comp : IsAdicComplete m R
     use (Polynomial.map (TransitionMap m le)) (g_series' ⟨b, bpos⟩)
     have degeq : (Polynomial.map (TransitionMap m le) (g_series' ⟨b, bpos⟩)).degree = (Nat.find ntriv) := by
       rw [← series_deg ⟨b, bpos⟩]
-      letI : Nontrivial (R ⧸ m ^ a) := R_ntriv' apos
+      let _ : Nontrivial (R ⧸ m ^ a) := R_ntriv' apos
       exact Monic.degree_map (series_mon ⟨b, bpos⟩) (TransitionMap m le)
     constructor
     · exact Monic.map (TransitionMap m le) (series_mon ⟨b, bpos⟩)
@@ -751,7 +751,7 @@ theorem Weierstrass_preparation' [hmax : m.IsMaximal] [comp : IsAdicComplete m R
       · exact Monic.map (Ideal.Quotient.mk (m ^ n)) monG
       · have degmapeq : (Polynomial.map (Ideal.Quotient.mk (m ^ n)) G).degree = (Nat.find ntriv) := by
           rw [← degG]
-          letI : Nontrivial (R ⧸ m ^ n) := R_ntriv' npos
+          let _ : Nontrivial (R ⧸ m ^ n) := R_ntriv' npos
           exact Monic.degree_map monG (Ideal.Quotient.mk (m ^ n))
         constructor
         · exact degmapeq
@@ -783,7 +783,7 @@ lemma Weierstrass_preparation_strong_uniq [hmax : m.IsMaximal] [IsAdicComplete m
     (distinguish : (∀ i : ℕ, i < degree g → coeff g i ∈ m)) (eq : f = g * h) : h = Classical.choose (Weierstrass_preparation' f ntriv) := by
   apply (Classical.choose_spec (Weierstrass_preparation' f ntriv)).2
   use g
-  letI : Nontrivial R := nontrivial_of_ne 0 1 (ne_of_mem_of_not_mem (Submodule.zero_mem m) ((Ideal.ne_top_iff_one m).mp (Ideal.IsMaximal.ne_top hmax)))
+  let _ : Nontrivial R := nontrivial_of_ne 0 1 (ne_of_mem_of_not_mem (Submodule.zero_mem m) ((Ideal.ne_top_iff_one m).mp (Ideal.IsMaximal.ne_top hmax)))
   exact ⟨mon, deg_eq_find Ideal.IsPrime.ne_top' f ntriv h g mon distinguish eq, distinguish, eq⟩
 
 open Classical in
@@ -856,8 +856,7 @@ lemma Weierstrass_preparation_aux [IsDomain R] [hmax : m.IsMaximal] [comp : IsAd
           by_contra h
           rw [← prin, Ideal.span_singleton_pow] at h
           rcases Ideal.mem_span_singleton.mp h with ⟨r, hr⟩
-          rw [pow_add, pow_one, mul_assoc] at hr
-          simp only [mul_eq_mul_left_iff, pow_eq_zero_iff', pi_ne0, ne_eq, false_and, or_false] at hr
+          simp only [pow_add, pow_one, mul_assoc, mul_eq_mul_left_iff, pow_eq_zero_iff', pi_ne0, ne_eq, false_and, or_false] at hr
           absurd nmem
           rw [← prin]
           apply Ideal.mem_span_singleton.mpr

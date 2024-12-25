@@ -15,11 +15,15 @@ open MonoidAlgebra
 
 variable {G : Type u} {R : Type v} [Group G] [CommSemiring R]
 
-/-- The transition Alghom `MonoidAlgebra R (G ⧸ N₁)` → `MonoidAlgebra R (G ⧸ N₂)` for N₁ ≤ N₂. -/
-noncomputable def transition_map {N₁ N₂ : Subgroup G} [N₁.Normal] [N₂.Normal] (h : N₁ ≤ N₂) :
+/-- The transition Alghom `MonoidAlgebra R (G ⧸ N₁) →ₐ[R] MonoidAlgebra R (G ⧸ N₂)` for N₁ ≤ N₂. -/
+noncomputable def transition_map (N₁ N₂ : Subgroup G) [N₁.Normal] [N₂.Normal] (h : N₁ ≤ N₂) :
     MonoidAlgebra R (G ⧸ N₁) →ₐ[R] MonoidAlgebra R (G ⧸ N₂) :=
   let f := QuotientGroup.map (f := MonoidHom.id G) N₁ N₂ h
   mapDomainAlgHom R R f
+
+
+
+variable (N₁ N₂ : Subgroup G) [N₁.Normal] [N₂.Normal]
 
 
 end lemmas
@@ -32,7 +36,32 @@ end lemmas
 
 section limits
 
-variable {J : Type v} [SmallCategory J] (F : J ⥤ ProfiniteGrp.{max v u})
+variable {G : Type u} {R : Type v} (G : ProfiniteGrp) [CommRing R] (N : OpenNormalSubgroup G)
 
 
-variable {G : Type u} {R : Type v} (G : ProfiniteGrp) [CommRing R]
+
+variable {J : Type v} [SmallCategory J] (F : J ⥤ AlgebraCat R)
+
+
+
+/-- Auxiliary construction to obtain the group structure on the limit of AlgebraCat R. -/
+def limitConePtAux : Subalgebra R (Π j : J, F.obj j) where
+  carrier :=  {x | ∀ ⦃i j : J⦄ (π : i ⟶ j), F.map π (x i) = x j}
+  mul_mem' := sorry
+  one_mem' := sorry
+  add_mem' := sorry
+  zero_mem' := sorry
+  algebraMap_mem' := sorry
+
+
+
+
+
+/-
+carrier := {x | ∀ ⦃i j : J⦄ (π : i ⟶ j), F.map π (x i) = x j}
+mul_mem' := by aesop
+add_mem' := by sorry
+algebraMap_mem' := by sorry
+
+ -/
+end limits

@@ -6,12 +6,13 @@ import IwasawaAlgebra.MissingLemmas.Limits
 
 universe u v
 
+namespace CompleteGroupRing
 
 noncomputable section lemmas
 
 open MonoidAlgebra
 
-variable {G : Type u} {R : Type v} [Group G] [CommRing R]
+variable {R : Type u} {G : Type v} [CommRing R] [Group G]
 
 /-- The transition Alghom `MonoidAlgebra R (G ⧸ N₁) →ₐ[R] MonoidAlgebra R (G ⧸ N₂)` for N₁ ≤ N₂. -/
 def transition_map (N₁ N₂ : Subgroup G) [N₁.Normal] [N₂.Normal] (h : N₁ ≤ N₂) :
@@ -41,7 +42,7 @@ noncomputable section limits
 
 open AlgebraCat CategoryTheory
 
-variable {G : Type u} (R : Type v) [CommRing R] (G : ProfiniteGrp)
+variable (R : Type u) {G : Type v} [CommRing R] (G : ProfiniteGrp)
 
 
 /-- Define the functor from OpenNormalSubgroup of a profinite group to the group ring of its
@@ -61,7 +62,6 @@ abbrev limitCone := HasLimits.limitCone (QuotientOpenNormalSubgroup R G)
 
 /-- The abbreviation for the limit of `AlgebraCat R`. -/
 abbrev limit : AlgebraCat R := (limitCone R G).pt
-
 
 
 

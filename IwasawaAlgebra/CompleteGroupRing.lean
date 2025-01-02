@@ -6,12 +6,13 @@ import IwasawaAlgebra.MissingLemmas.Limits
 
 universe u v
 
+namespace CompleteGroupRing
 
 noncomputable section lemmas
 
 open MonoidAlgebra
 
-variable {G : Type u} {R : Type v} [Group G] [CommRing R]
+variable {R : Type u} {G : Type v} [CommRing R] [Group G]
 
 /-- The transition Alghom `MonoidAlgebra R (G ⧸ N₁) →ₐ[R] MonoidAlgebra R (G ⧸ N₂)` for N₁ ≤ N₂. -/
 def transition_map (N₁ N₂ : Subgroup G) [N₁.Normal] [N₂.Normal] (h : N₁ ≤ N₂) :
@@ -98,7 +99,6 @@ def completedGroupAlgebraIso {Λ : Type w} [CanonicallyLinearOrderedAddCommMonoi
   simp_rw [limit_ONS, limit_index, limitCone, limitConeIndex]
 
   sorry
-
 
 
 end limits
